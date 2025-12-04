@@ -1,0 +1,191 @@
+/* =====================================================
+   assets/css/horarios.css
+   Estilos específicos para la gestión de horarios
+   ===================================================== */
+
+.horario-table {
+    font-size: 0.85rem;
+}
+
+.horario-table thead th {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+    padding: 12px 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.horario-table tbody td {
+    padding: 0;
+    vertical-align: top;
+    min-height: 80px;
+    position: relative;
+}
+
+.celda-horario {
+    min-height: 80px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    transition: background-color 0.3s;
+}
+
+.celda-horario:hover {
+    background-color: #e9ecef;
+    cursor: pointer;
+}
+
+.bloque-horario {
+    padding: 8px;
+    border-radius: 5px;
+    border-left: 4px solid;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 100%;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.bloque-horario:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: translateY(-2px);
+}
+
+/* Estados de horarios */
+.estado-borrador {
+    border-left-color: #6c757d;
+    background-color: #f8f9fa;
+}
+
+.estado-conciliado {
+    border-left-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.estado-publicado {
+    border-left-color: #198754;
+    background-color: #d1e7dd;
+}
+
+/* Información dentro del bloque */
+.bloque-horario .materia-nombre {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #212529;
+    margin-bottom: 4px;
+}
+
+.bloque-horario .grupo-info {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-bottom: 3px;
+}
+
+.bloque-horario .docente-info,
+.bloque-horario .aula-info {
+    font-size: 0.75rem;
+    color: #495057;
+    margin-bottom: 2px;
+}
+
+.bloque-horario .docente-info i,
+.bloque-horario .aula-info i {
+    width: 12px;
+    margin-right: 4px;
+}
+
+.bloque-horario .horario-tiempo {
+    font-size: 0.7rem;
+    color: #6c757d;
+    font-weight: 600;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid #dee2e6;
+}
+
+.bloque-horario .acciones-horario {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.bloque-horario:hover .acciones-horario {
+    opacity: 1;
+}
+
+.bloque-horario .acciones-horario .btn {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+}
+
+/* Panel de agregar horario */
+#form-agregar-horario {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+#form-agregar-horario .form-select,
+#form-agregar-horario .form-control {
+    font-size: 0.85rem;
+}
+
+/* Leyenda */
+.card-body .badge {
+    margin-right: 8px;
+}
+
+/* Impresión */
+@media print {
+    #sidebar,
+    .navbar,
+    .btn-toolbar,
+    .card-header,
+    .acciones-horario,
+    .breadcrumb {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+    }
+    
+    .horario-table {
+        font-size: 0.7rem;
+    }
+    
+    .bloque-horario {
+        page-break-inside: avoid;
+    }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bloque-horario {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Drag and Drop (para futuras mejoras) */
+.celda-horario.drag-over {
+    background-color: #d1e7dd;
+    border: 2px dashed #198754;
+}
+
+.bloque-horario.dragging {
+    opacity: 0.5;
+    cursor: move;
+}
