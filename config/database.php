@@ -36,11 +36,17 @@ class Database {
         }
     }
 
-    // Helper para obtener variables limpias
+    // Helper MEJORADO para obtener variables limpias
     private function getEnv($key) {
+        // Prioridad 1: $_ENV (Estándar moderno)
         if (isset($_ENV[$key])) return $_ENV[$key];
+        
+        // Prioridad 2: $_SERVER (A veces Railway las inyecta aquí)
+        if (isset($_SERVER[$key])) return $_SERVER[$key];
+        
+        // Prioridad 3: getenv (Estándar antiguo)
         $val = getenv($key);
-        return ($val !== false) ? $val : null; // Si es false, devuelve null
+        return ($val !== false) ? $val : null; 
     }
 
     public function getConnection() {
@@ -71,4 +77,3 @@ class Database {
         return $this->conn;
     }
 }
-?>
