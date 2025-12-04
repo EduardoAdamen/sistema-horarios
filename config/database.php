@@ -1,7 +1,7 @@
 <?php
 // =====================================================
 // config/database.php
-// Conexión a MySQL corregida para Railway
+// Conexión Robusta para Railway (Soporte MYSQL_URL)
 // =====================================================
 
 class Database {
@@ -14,37 +14,58 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // MÉTODO INFALIBLE:
-        // Buscamos primero en $_ENV (Nube), luego en getenv() y al final usamos los datos locales.
-        // El operador '??' asigna el primer valor que no sea nulo.
+        // 1. INTENTO PRIMARIO: Usar la URL completa de Railway (Más seguro)
+        // Railway suele dar una variable MYSQL_URL que tiene todo junto.
+        $mysql_url = $this->getEnv('MYSQL_URL');
+        
+        if ($mysql_url) {
+            $url = parse_url($mysql_url);
+            $this->host     = $url['host'] ?? null;
+            $this->username = $url['user'] ?? null;
+            $this->password = $url['pass'] ?? null;
+            $this->db_name  = isset($url['path']) ? ltrim($url['path'], '/') : null;
+            $this->port     = $url['port'] ?? 3306;
+        } else {
+            // 2. INTENTO SECUNDARIO: Variables individuales
+            // Usamos el operador ?: para evitar que 'false' se quede como valor
+            $this->host     = $this->getEnv('MYSQLHOST') ?: 'localhost';
+            $this->db_name  = $this->getEnv('MYSQLDATABASE') ?: 'sistema_horarios';
+            $this->username = $this->getEnv('MYSQLUSER') ?: 'root';
+            $this->password = $this->getEnv('MYSQLPASSWORD') ?: 'admineduardox624';
+            $this->port     = $this->getEnv('MYSQLPORT') ?: '3306';
+        }
+    }
 
-        $this->host     = $_ENV['MYSQLHOST'] ?? getenv('MYSQLHOST') ?? 'localhost';
-        $this->port     = $_ENV['MYSQLPORT'] ?? getenv('MYSQLPORT') ?? '3306';
-        $this->db_name  = $_ENV['MYSQLDATABASE'] ?? getenv('MYSQLDATABASE') ?? 'sistema_horarios';
-        $this->username = $_ENV['MYSQLUSER'] ?? getenv('MYSQLUSER') ?? 'root';
-        $this->password = $_ENV['MYSQLPASSWORD'] ?? getenv('MYSQLPASSWORD') ?? 'admineduardox624';
+    // Helper para obtener variables limpias
+    private function getEnv($key) {
+        if (isset($_ENV[$key])) return $_ENV[$key];
+        $val = getenv($key);
+        return ($val !== false) ? $val : null; // Si es false, devuelve null
     }
 
     public function getConnection() {
         $this->conn = null;
         
         try {
-            // Construimos el DSN asegurando que el puerto esté incluido
             $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->db_name};charset={$this->charset}";
             
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_TIMEOUT => 10, // Esperar máx 10 segundos
+                PDO::ATTR_TIMEOUT => 15,
             ];
             
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
             
         } catch(PDOException $exception) {
-            // DEBUG: Mostrar qué host intentó usar para saber si leyó la variable
-            // OJO: En producción real esto no se hace por seguridad, pero ahora lo necesitas para debug
-            die("DB ERROR: " . $exception->getMessage() . " | Intentando conectar a Host: " . $this->host);
+            // Mensaje de depuración detallado
+            $errorMsg = "DB Error: " . $exception->getMessage();
+            $debugInfo = " | Host detectado: [" . ($this->host ? $this->host : 'VACÍO') . "]";
+            $debugInfo .= " | Puerto: " . $this->port;
+            
+            // Ojo: En producción esto es inseguro, pero necesario ahora para debug
+            die($errorMsg . $debugInfo);
         }
         
         return $this->conn;
