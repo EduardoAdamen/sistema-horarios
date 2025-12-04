@@ -58,7 +58,8 @@ class Database {
 
         } catch(PDOException $exception) {
             error_log("Error de conexión: " . $exception->getMessage());
-            die("Error de conexión a la base de datos.");
+            die("DB ERROR: " . $exception->getMessage());
+
         }
 
         return $this->conn;
