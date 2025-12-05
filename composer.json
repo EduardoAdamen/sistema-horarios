@@ -1,6 +1,10 @@
 {
-  "require": {
-    "ext-pdo": "*",
-    "ext-pdo_mysql": "*"
-  }
+    "name": "sistema/horarios",
+    "description": "Sistema de Gestion de Horarios",
+    "type": "project",
+    "require": {
+        "php": "^8.2",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
+    }
 }
