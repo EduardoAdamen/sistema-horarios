@@ -11,16 +11,15 @@ class Database {
     public function getConnection() {
         $this->conn = null;
 
-        // 1. ASIGNAR CREDENCIALES
-        // Detectar si estamos en Railway buscando variables de entorno
-        // Railway suele usar MYSQLHOST, MYSQLUSER, etc.
-        // Ojo: Si usas Postgres, cambia MYSQL por PG
+        // 1. ASIGNAR CREDENCIALES (ROBUSTO)
+        // Usamos una lógica que intenta leer de $_ENV y si falla usa getenv()
+        // Esto soluciona el error "No such file or directory" al evitar el fallback a localhost
         
-        $this->host = $_ENV['MYSQLHOST'] ?? $_ENV['DB_HOST'] ?? 'localhost';
-        $this->db_name = $_ENV['MYSQLDATABASE'] ?? $_ENV['DB_NAME'] ?? 'mindbox_db';
-        $this->username = $_ENV['MYSQLUSER'] ?? $_ENV['DB_USER'] ?? 'root';
-        $this->password = $_ENV['MYSQLPASSWORD'] ?? $_ENV['DB_PASSWORD'] ?? '';
-        $this->port = $_ENV['MYSQLPORT'] ?? $_ENV['DB_PORT'] ?? '3306';
+        $this->host = $this->getEnvVar('MYSQLHOST') ?? $this->getEnvVar('DB_HOST') ?? 'localhost';
+        $this->db_name = $this->getEnvVar('MYSQLDATABASE') ?? $this->getEnvVar('DB_NAME') ?? 'mindbox_db';
+        $this->username = $this->getEnvVar('MYSQLUSER') ?? $this->getEnvVar('DB_USER') ?? 'root';
+        $this->password = $this->getEnvVar('MYSQLPASSWORD') ?? $this->getEnvVar('DB_PASSWORD') ?? '';
+        $this->port = $this->getEnvVar('MYSQLPORT') ?? $this->getEnvVar('DB_PORT') ?? '3306';
 
         // 2. INTENTAR CONEXIÓN
         try {
@@ -40,17 +39,28 @@ class Database {
             // En producción, es mejor usar error_log que echo para no exponer datos
             error_log("Error de conexión: " . $exception->getMessage());
             
-            // Si estamos en modo debug (ver config.php), mostramos el error
-            // Si no, mostramos mensaje genérico
-            $debug = $_ENV['APP_DEBUG'] ?? 1;
+            // Si estamos en modo debug mostramos el error
+            $debug = $this->getEnvVar('APP_DEBUG') ?? 1;
             if ($debug) {
-                echo "Error de conexión: " . $exception->getMessage();
+                echo "Error de conexión (Detalle): " . $exception->getMessage();
             } else {
                 echo "Error de conexión a la base de datos.";
             }
+            // Importante: retornamos null
+            return null;
         }
 
         return $this->conn;
+    }
+
+    // Función auxiliar para leer variables de entorno de forma segura
+    private function getEnvVar($key) {
+        if (isset($_ENV[$key])) {
+            return $_ENV[$key];
+        } elseif (getenv($key) !== false) {
+            return getenv($key);
+        }
+        return null;
     }
 }
 ?>
