@@ -1,7 +1,7 @@
 <?php
 // =====================================================
 // config/database.php
-// Conexión Blindada para Railway (Prioridad MYSQL_URL)
+// Conexión Blindada V2 (Soporte Multi-Variables)
 // =====================================================
 
 class Database {
@@ -14,8 +14,9 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // ESTRATEGIA 1: Intentar parsear MYSQL_URL (La más confiable en Railway)
-        $mysql_url = $this->findEnv('MYSQL_URL');
+        // ESTRATEGIA 1: Intentar parsear MYSQL_URL o DATABASE_URL
+        // A veces Railway usa DATABASE_URL para la conexión general
+        $mysql_url = $this->findEnv(['MYSQL_URL', 'DATABASE_URL']);
         
         if ($mysql_url) {
             $url = parse_url($mysql_url);
@@ -26,26 +27,48 @@ class Database {
             $this->port     = $url['port'] ?? null;
         }
 
-        // ESTRATEGIA 2: Si falta algo, buscar variables individuales
-        // El operador ?: asegura que no se usen valores vacíos
-        if (empty($this->host))     $this->host     = $this->findEnv('MYSQLHOST') ?: 'localhost';
-        if (empty($this->db_name))  $this->db_name  = $this->findEnv('MYSQLDATABASE') ?: 'sistema_horarios';
-        if (empty($this->username)) $this->username = $this->findEnv('MYSQLUSER') ?: 'root';
-        if (empty($this->password)) $this->password = $this->findEnv('MYSQLPASSWORD') ?: 'admineduardox624';
-        if (empty($this->port))     $this->port     = $this->findEnv('MYSQLPORT') ?: '3306';
+        // ESTRATEGIA 2: Variables individuales (Buscamos todas las variantes posibles)
+        // Buscamos: MYSQLHOST (sin guion) Y MYSQL_HOST (con guion)
+        
+        if (empty($this->host)) {
+            $this->host = $this->findEnv(['MYSQLHOST', 'MYSQL_HOST', 'DB_HOST']) ?: 'localhost';
+        }
+        
+        if (empty($this->db_name)) {
+            $this->db_name = $this->findEnv(['MYSQLDATABASE', 'MYSQL_DATABASE', 'DB_NAME']) ?: 'sistema_horarios';
+        }
+        
+        if (empty($this->username)) {
+            $this->username = $this->findEnv(['MYSQLUSER', 'MYSQL_USER', 'DB_USER']) ?: 'root';
+        }
+        
+        if (empty($this->password)) {
+            $this->password = $this->findEnv(['MYSQLPASSWORD', 'MYSQL_PASSWORD', 'DB_PASSWORD']) ?: 'admineduardox624';
+        }
+        
+        if (empty($this->port)) {
+            $this->port = $this->findEnv(['MYSQLPORT', 'MYSQL_PORT', 'DB_PORT']) ?: '3306';
+        }
     }
 
-    // Helper agresivo para encontrar variables no vacías
-    private function findEnv($key) {
-        // 1. Revisar getenv()
-        $val = getenv($key);
-        if ($val !== false && $val !== '') return $val;
+    // Helper ultra-agresivo para encontrar variables
+    // Acepta un string o un array de posibles nombres de variables
+    private function findEnv($keys) {
+        if (!is_array($keys)) {
+            $keys = [$keys];
+        }
 
-        // 2. Revisar $_ENV
-        if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
+        foreach ($keys as $key) {
+            // 1. Revisar getenv()
+            $val = getenv($key);
+            if ($val !== false && $val !== '') return $val;
 
-        // 3. Revisar $_SERVER
-        if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return $_SERVER[$key];
+            // 2. Revisar $_ENV
+            if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
+
+            // 3. Revisar $_SERVER
+            if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return $_SERVER[$key];
+        }
 
         return null;
     }
@@ -60,20 +83,18 @@ class Database {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_TIMEOUT => 30, // Aumentamos timeout por si la red es lenta
+                PDO::ATTR_TIMEOUT => 30,
             ];
             
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
             
         } catch(PDOException $exception) {
-            // DEBUG FINAL: Mostrar qué datos intentó usar
-            // OJO: Si ves esto, significa que Railway no está pasando NADA de info
-            
+            // DEBUG FINAL ACTUALIZADO
             echo "<div style='background:#fff0f0; border:2px solid red; padding:20px; font-family:monospace; color:#333;'>";
-            echo "<h2 style='color:red; margin-top:0;'>❌ Error Crítico de Conexión</h2>";
+            echo "<h2 style='color:red; margin-top:0;'>❌ Error Crítico de Conexión (V2)</h2>";
             echo "<p><strong>Mensaje del Sistema:</strong> " . $exception->getMessage() . "</p>";
             echo "<hr>";
-            echo "<h3>Datos de Intento de Conexión:</h3>";
+            echo "<h3>Datos Usados (Intentando todas las variantes):</h3>";
             echo "<ul>";
             echo "<li><strong>Host:</strong> [" . ($this->host ?: '<span style="color:red">VACÍO</span>') . "]</li>";
             echo "<li><strong>Puerto:</strong> [" . ($this->port ?: '<span style="color:red">VACÍO</span>') . "]</li>";
@@ -81,7 +102,7 @@ class Database {
             echo "<li><strong>Base de Datos:</strong> " . ($this->db_name ?: '<span style="color:red">VACÍO</span>') . "</li>";
             echo "</ul>";
             echo "<hr>";
-            echo "<p><em>Nota: Si los datos están vacíos o son 'localhost', Railway no está inyectando las variables correctamente. Reinicia el servicio (Redeploy).</em></p>";
+            echo "<p><em>Nota: Si ves 'localhost', significa que ninguna variable de entorno (ni MYSQLHOST ni MYSQL_HOST) fue encontrada.</em></p>";
             echo "</div>";
             die();
         }
