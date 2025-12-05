@@ -1,7 +1,7 @@
 <?php
 // =====================================================
 // config/database.php
-// Database "robusta" - Prioriza MYSQL_URL y acepta variantes
+// Versión Final: Configuración Manual (Railway) + Local
 // =====================================================
 
 class Database {
@@ -14,95 +14,76 @@ class Database {
     public $conn;
 
     public function __construct() {
-        // 1) Intentar leer directamente MYSQL_URL / DATABASE_URL (Railway suele poner una de estas)
-        $mysql_url = $this->envAny(['MYSQL_URL', 'DATABASE_URL']);
+        // -----------------------------------------------------
+        // 1. INTENTAR CARGAR CONFIGURACIÓN DE NUBE (RAILWAY)
+        // -----------------------------------------------------
+        // Buscamos las variables que configuraste manualmente.
+        // Aceptamos variaciones (MYSQLHOST o MYSQL_HOST) por compatibilidad.
+        
+        $this->host     = $this->getEnvVar(['MYSQLHOST', 'MYSQL_HOST']);
+        $this->db_name  = $this->getEnvVar(['MYSQLDATABASE', 'MYSQL_DATABASE']);
+        $this->username = $this->getEnvVar(['MYSQLUSER', 'MYSQL_USER']);
+        $this->password = $this->getEnvVar(['MYSQLPASSWORD', 'MYSQL_PASSWORD']);
+        $this->port     = $this->getEnvVar(['MYSQLPORT', 'MYSQL_PORT']);
 
-        if ($mysql_url) {
-            // Ejemplo: mysql://user:pass@host:3306/database
-            $url = parse_url($mysql_url);
-
-            $this->username = isset($url['user']) ? rawurldecode($url['user']) : null;
-            $this->password = isset($url['pass']) ? rawurldecode($url['pass']) : null;
-            $this->host     = $url['host'] ?? null;
-            $this->port     = $url['port'] ?? null;
-            $this->db_name  = isset($url['path']) ? ltrim($url['path'], '/') : null;
-        }
-
-        // 2) Si algo quedó vacío, intentar variantes individuales (con y sin underscore)
-        $this->host     = $this->host     ?? $this->envAny(['MYSQLHOST', 'MYSQL_HOST', 'DB_HOST']);
-        $this->db_name  = $this->db_name  ?? $this->envAny(['MYSQLDATABASE', 'MYSQL_DATABASE', 'DB_NAME']);
-        $this->username = $this->username ?? $this->envAny(['MYSQLUSER', 'MYSQL_USER', 'DB_USER']);
-        $this->password = $this->password ?? $this->envAny(['MYSQLPASSWORD', 'MYSQL_PASSWORD', 'DB_PASSWORD']);
-        $this->port     = $this->port     ?? $this->envAny(['MYSQLPORT', 'MYSQL_PORT', 'DB_PORT']);
-
-        // 3) No asumir localhost en Railway: si no hay host, detener con mensaje claro
+        // -----------------------------------------------------
+        // 2. FALLBACK A ENTORNO LOCAL (XAMPP)
+        // -----------------------------------------------------
+        // Si no se detectó el HOST de la nube, asumimos que estás en tu PC.
+        
         if (empty($this->host)) {
-            // Mensaje claro para que linkees las variables (temporal)
-            die("ERROR FATAL: VARIABLE MYSQLHOST NO CONFIGURADA. Ve a tu servicio Web en Railway → Variables → Add Variable Reference y enlaza las variables desde tu servicio MySQL.");
+            $this->host     = 'localhost';
+            $this->db_name  = 'sistema_horarios';
+            $this->username = 'root';
+            $this->password = 'admineduardox624'; // Tu contraseña local
+            $this->port     = '3306';
         }
-
-        // 4) Si host es 'localhost' y estamos en Railway, convertir a 127.0.0.1 (prevención)
-        if ($this->host === 'localhost') {
-            $this->host = '127.0.0.1';
-        }
-
-        // 5) Valores por defecto de puerto
-        $this->port = $this->port ?: '3306';
     }
 
     /**
-     * envAny: devuelve la primera variable no vacía entre las dadas
+     * Helper para buscar variables de entorno en cualquier lugar
+     * (Soporta getenv, $_ENV y $_SERVER)
      */
-    private function envAny(array $keys) {
-        foreach ($keys as $k) {
-            // Priorizar getenv()
-            $v = getenv($k);
-            if ($v !== false && $v !== '') return $v;
-
-            if (isset($_SERVER[$k]) && $_SERVER[$k] !== '') return $_SERVER[$k];
-            if (isset($_ENV[$k]) && $_ENV[$k] !== '') return $_ENV[$k];
+    private function getEnvVar($keys) {
+        foreach ($keys as $key) {
+            // 1. Revisar getenv() (Estándar)
+            $val = getenv($key);
+            if ($val !== false && $val !== '') return $val;
+            
+            // 2. Revisar $_ENV (Contenedores modernos)
+            if (isset($_ENV[$key]) && !empty($_ENV[$key])) return $_ENV[$key];
+            
+            // 3. Revisar $_SERVER (Servidores web clásicos)
+            if (isset($_SERVER[$key]) && !empty($_SERVER[$key])) return $_SERVER[$key];
         }
         return null;
     }
 
     public function getConnection() {
         $this->conn = null;
-
+        
         try {
+            // Usamos el puerto detectado (en Railway no es 3306)
             $dsn = "mysql:host={$this->host};port={$this->port};dbname={$this->db_name};charset={$this->charset}";
-
+            
             $options = [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                PDO::ATTR_TIMEOUT => 30,
+                PDO::ATTR_TIMEOUT => 10, // Tiempo de espera prudente
             ];
-
-            // Log seguro para Railway (contraseña enmascarada)
-            $masked = $this->password ? substr($this->password, 0, 2) . '***' : '(empty)';
-            error_log("[DB] Conectando host={$this->host} port={$this->port} db={$this->db_name} user={$this->username} pass={$masked}");
-
+            
             $this->conn = new PDO($dsn, $this->username, $this->password, $options);
-
-        } catch (PDOException $e) {
-            // Mensaje de diagnóstico (temporal)
-            $msg = htmlspecialchars($e->getMessage());
-            $html = "<div style='font-family: sans-serif; padding:20px; background:#fff1f2; border:1px solid #fca5a5;'>";
-            $html .= "<h2 style='color:#b91c1c'>❌ Error de Conexión</h2>";
-            $html .= "<p><strong>Mensaje técnico:</strong> {$msg}</p>";
-            $html .= "<ul>";
-            $html .= "<li><strong>Host:</strong> [" . htmlspecialchars($this->host) . "]</li>";
-            $html .= "<li><strong>Puerto:</strong> [" . htmlspecialchars($this->port) . "]</li>";
-            $html .= "<li><strong>DB:</strong> [" . htmlspecialchars($this->db_name) . "]</li>";
-            $html .= "<li><strong>User:</strong> [" . htmlspecialchars($this->username) . "]</li>";
-            $html .= "<li><strong>Pass:</strong> " . ($this->password ? substr($this->password,0,2) . '***' : '(empty)') . "</li>";
-            $html .= "</ul>";
-            $html .= "</div>";
-
-            error_log("[DB ERROR] " . $e->getMessage());
-            die($html);
+            
+        } catch(PDOException $exception) {
+            // En producción NO mostramos el error real al usuario por seguridad.
+            // Lo guardamos en el log del servidor.
+            error_log("Connection Error: " . $exception->getMessage());
+            
+            // Mensaje genérico para el usuario
+            die("Error de conexión a la base de datos. El sistema no puede acceder a los datos en este momento.");
         }
-
+        
         return $this->conn;
     }
 }
