@@ -273,7 +273,7 @@
                     <i class="fas fa-graduation-cap"></i>
                 </div>
                 <h1 class="login-title">Sistema de Horarios</h1>
-                <p class="login-subtitle">Institución Educativa Superior</p>
+                <p class="login-subtitle">Instituto Tecnológico de Chilpancingo</p>
             </div>
 
             <!-- BODY -->
