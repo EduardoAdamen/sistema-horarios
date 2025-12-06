@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/reportes/carga_docentes.php
-// Reporte de carga horaria - BOTONES CORREGIDOS
-// =====================================================
+
 
 $page_title = 'Reporte: Carga Horaria de Docentes';
 ?>
@@ -10,7 +7,7 @@ $page_title = 'Reporte: Carga Horaria de Docentes';
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-    /* [Mantengo todos los estilos originales sin cambios] */
+    
     :root {
         --primary: #2563eb; --primary-hover: #1d4ed8; --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
         --info: #0ea5e9; --muted: #64748b; --text-main: #0f172a; --bg: #ffffff; --surface: #f8fafc;

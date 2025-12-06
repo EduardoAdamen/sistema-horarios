@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// controllers/PeriodosController.php
-// Gestión de períodos escolares
-// =====================================================
 
 class PeriodosController {
     
@@ -19,9 +15,7 @@ class PeriodosController {
         $this->conn = $db->getConnection();
     }
     
-    /**
-     * Listar períodos
-     */
+ 
     public function index() {
         $sql = "SELECT * FROM periodos_escolares ORDER BY activo DESC, fecha_inicio DESC";
         $stmt = $this->conn->query($sql);
@@ -31,16 +25,14 @@ class PeriodosController {
         $this->loadView('periodos/index', $data);
     }
     
-    /**
-     * Crear período
-     */
+  
     public function crear() {
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $this->loadView('periodos/crear');
             return;
         }
         
-        // POST - Procesar creación
+       
         $datos = [
             'nombre' => $_POST['nombre'] ?? '',
             'fecha_inicio' => $_POST['fecha_inicio'] ?? '',
@@ -48,7 +40,7 @@ class PeriodosController {
             'activo' => isset($_POST['activo']) ? 1 : 0
         ];
         
-        // Validar fechas
+     
         if (strtotime($datos['fecha_fin']) <= strtotime($datos['fecha_inicio'])) {
             $_SESSION['error'] = 'La fecha de fin debe ser posterior a la fecha de inicio';
             header('Location: index.php?c=periodos&a=crear');
@@ -80,9 +72,7 @@ class PeriodosController {
         exit;
     }
     
-    /**
-     * Editar período
-     */
+  
     public function editar() {
         $id = $_GET['id'] ?? null;
         
@@ -108,7 +98,7 @@ class PeriodosController {
             return;
         }
         
-        // POST - Procesar actualización
+        
         $datos = [
             'nombre' => $_POST['nombre'] ?? '',
             'fecha_inicio' => $_POST['fecha_inicio'] ?? '',
@@ -116,7 +106,7 @@ class PeriodosController {
             'activo' => isset($_POST['activo']) ? 1 : 0
         ];
         
-        // Si se marca como activo, desactivar los demás
+       
         if ($datos['activo']) {
             $this->conn->exec("UPDATE periodos_escolares SET activo = 0");
         }
@@ -150,9 +140,7 @@ class PeriodosController {
         exit;
     }
     
-    /**
-     * Activar/Desactivar período
-     */
+  
     public function activar() {
         $id = $_POST['id'] ?? null;
         
@@ -162,10 +150,10 @@ class PeriodosController {
             exit;
         }
         
-        // Desactivar todos los períodos
+       
         $this->conn->exec("UPDATE periodos_escolares SET activo = 0");
         
-        // Activar el seleccionado
+       
         $sql = "UPDATE periodos_escolares SET activo = 1 WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':id' => $id]);
@@ -177,10 +165,7 @@ class PeriodosController {
         header('Location: index.php?c=periodos');
         exit;
     }
-    
-    /**
-     * Eliminar período (solo si no tiene datos asociados)
-     */
+  
     public function eliminar() {
         $id = $_POST['id'] ?? null;
         
@@ -190,7 +175,7 @@ class PeriodosController {
             exit;
         }
         
-        // Verificar si tiene horarios asociados
+       
         $sql = "SELECT COUNT(*) as total FROM horarios WHERE periodo_id = :id";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':id' => $id]);
@@ -202,7 +187,7 @@ class PeriodosController {
             exit;
         }
         
-        // Eliminar
+        
         $sql = "DELETE FROM periodos_escolares WHERE id = :id";
         $stmt = $this->conn->prepare($sql);
         

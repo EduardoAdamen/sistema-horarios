@@ -1,7 +1,4 @@
 <?php
-// =====================================================
-// index.php - Página principal del sistema
-// =====================================================
 
 require_once 'config/config.php';
 require_once 'config/database.php';
@@ -22,8 +19,7 @@ if (!Auth::isLoggedIn()) {
 $controller = $_GET['c'] ?? 'dashboard';
 $action = $_GET['a'] ?? 'index';
 
-// Mapa de controladores permitidos
-// NOTA: Se eliminaron 'demanda' y 'publicacion' ya que no se usan en el nuevo flujo
+
 $allowed_controllers = [
     'dashboard' => 'DashboardController',
     'usuarios'  => 'UsuariosController',

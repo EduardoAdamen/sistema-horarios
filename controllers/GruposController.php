@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// controllers/GruposController.php
-// ✅ VERSIÓN FINAL MEJORADA - Manejo de Excepciones y Lógica Robusta
-// =====================================================
 
 require_once MODELS_PATH . 'Grupo.php';
 require_once MODELS_PATH . 'Aula.php';
@@ -13,13 +9,13 @@ class GruposController {
     private $aula_model;
     
     public function __construct() {
-        // 1. Verificar autenticación
+        // 1. Verifica autenticación
         if (!Auth::isLoggedIn()) {
             header('Location: index.php?c=dashboard');
             exit;
         }
 
-        // 2. Verificar permisos (Solo Subdirector y DEP pueden gestionar grupos)
+        // 2. Verifica permisos (Solo Subdirector y DEP pueden gestionar grupos)
         if (!Auth::hasAnyRole([ROLE_SUBDIRECTOR, ROLE_DEP])) {
             $_SESSION['error'] = 'No tiene permisos para gestionar grupos.';
             header('Location: index.php?c=dashboard');
@@ -48,20 +44,19 @@ class GruposController {
     }
     
     public function crear() {
-        // --- GET: Mostrar formulario ---
+        
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $aulas = $this->aula_model->getAll();
             $this->loadView('grupos/crear', ['aulas' => $aulas]);
             return;
         }
         
-        // --- POST: Procesar creación ---
-        // Detectar si es una petición AJAX
+    
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                   strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
         
         try {
-            // 1. Recolección y limpieza de datos
+          
             $clave = strtoupper(trim($_POST['clave'] ?? ''));
             $materia_id = filter_input(INPUT_POST, 'materia_id', FILTER_VALIDATE_INT);
             $periodo_id = filter_input(INPUT_POST, 'periodo_id', FILTER_VALIDATE_INT);
@@ -71,10 +66,10 @@ class GruposController {
             $cupo_maximo = filter_input(INPUT_POST, 'cupo_maximo', FILTER_VALIDATE_INT) ?: 40;
             $alumnos_inscritos = filter_input(INPUT_POST, 'alumnos_inscritos', FILTER_VALIDATE_INT) ?: 0;
             
-            // Manejo especial para Aula (puede venir vacía si no se asigna aún)
+           
             $aula_id = !empty($_POST['aula_id']) ? (int)$_POST['aula_id'] : null;
 
-            // 2. Validaciones Críticas Detalladas
+           
             if (empty($clave)) {
                 throw new Exception("El campo <strong>Clave del Grupo</strong> es obligatorio.");
             }
@@ -88,12 +83,11 @@ class GruposController {
                 throw new Exception("Debe seleccionar un <strong>Semestre</strong>.");
             }
             
-            // Validación específica de Materia (Flujo Crítico)
+           
             if (!$materia_id) {
                 throw new Exception("⚠️ <strong>Falta la Materia:</strong> No se ha seleccionado ninguna materia. Si la lista aparece vacía, verifique que existan materias registradas para la carrera y semestre seleccionados.");
             }
 
-            // 3. Lógica de Negocio: Calcular Estado Automático
             $estado = ($alumnos_inscritos >= $cupo_minimo) ? 'abierto' : 'proyectado';
 
             $datos = [
@@ -109,18 +103,18 @@ class GruposController {
                 'estado' => $estado
             ];
             
-            // 4. Guardar en Base de Datos con manejo de errores SQL
+            // 4. Guarda en Base de Datos
             $result = $this->grupo_model->create($datos);
             
             if ($result['success']) {
-                // Registrar log si la función existe
+                
                 if (function_exists('logAccion')) {
                     logAccion(Auth::getCurrentUser(), $_SESSION['rol'], 'CREATE', 'grupos', $result['id'], "Grupo creado: $clave");
                 }
 
                 $mensajeExito = "Grupo <strong>$clave</strong> creado correctamente. Estado inicial: <strong>" . ucfirst($estado) . "</strong>.";
 
-                // Respuesta diferenciada según el tipo de petición
+               
                 if ($isAjax) {
                     header('Content-Type: application/json');
                     echo json_encode([
@@ -138,17 +132,17 @@ class GruposController {
             }
 
         } catch (PDOException $e) {
-            // Manejo específico de errores de base de datos
+           
             $errorMsg = "Error de base de datos al crear el grupo.";
             
-            // Detectar error de clave duplicada (SQLSTATE 23000 o código 1062)
+            
             if ($e->getCode() == 23000 || strpos($e->getMessage(), '1062') !== false) {
                 $errorMsg = "⚠️ <strong>Clave Duplicada:</strong> Ya existe un grupo con la clave <strong>" . htmlspecialchars($clave) . "</strong> en este período escolar. Por favor, utilice una clave diferente.";
             } else {
                 error_log("DB Error Crear Grupo: " . $e->getMessage());
             }
 
-            // Respuesta diferenciada
+       
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode([
@@ -163,7 +157,7 @@ class GruposController {
             }
 
         } catch (Exception $e) {
-            // Errores de validación o lógica
+         
             $errorMsg = $e->getMessage();
 
             if ($isAjax) {
@@ -190,12 +184,12 @@ class GruposController {
             exit;
         }
         
-        // --- GET: Mostrar formulario de edición ---
+       
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $db = new Database();
             $conn = $db->getConnection();
             
-            // Obtener datos del grupo junto con el nombre de la materia para mostrarlo
+           
             $sql = "SELECT g.*, m.nombre as materia_nombre, m.clave as materia_clave, 
                            c.nombre as carrera_nombre, s.nombre as semestre_nombre
                     FROM grupos g 
@@ -219,31 +213,31 @@ class GruposController {
             return;
         }
         
-        // --- POST: Procesar actualización ---
+        
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
                   strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
         
         try {
-            // Recolección
+            
             $cupo_minimo = filter_input(INPUT_POST, 'cupo_minimo', FILTER_VALIDATE_INT);
             $cupo_maximo = filter_input(INPUT_POST, 'cupo_maximo', FILTER_VALIDATE_INT);
             $alumnos_inscritos = filter_input(INPUT_POST, 'alumnos_inscritos', FILTER_VALIDATE_INT);
             $aula_id = !empty($_POST['aula_id']) ? (int)$_POST['aula_id'] : null;
             $estado_manual = $_POST['estado'] ?? 'proyectado';
 
-            // Validaciones
+    
             if ($cupo_minimo === false || $cupo_maximo === false || $alumnos_inscritos === false) {
                 throw new Exception("Los campos numéricos (cupos e inscritos) son inválidos.");
             }
 
-            // Lógica de Estado:
+
             if ($estado_manual != 'cancelado' && $estado_manual != 'cerrado') {
                 $estado_final = ($alumnos_inscritos >= $cupo_minimo) ? 'abierto' : 'proyectado';
             } else {
                 $estado_final = $estado_manual;
             }
 
-            // Actualización directa SQL para mayor control
+           
             $db = new Database();
             $conn = $db->getConnection();
             
@@ -309,7 +303,7 @@ class GruposController {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             if ($id) {
-                // Verificar si tiene horarios asignados
+                // Verifica si tiene horarios asignados
                 $db = new Database();
                 $conn = $db->getConnection();
                 $check = $conn->prepare("SELECT COUNT(*) FROM horarios WHERE grupo_id = ?");

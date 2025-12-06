@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/reportes/horario_aula.php
-// Reporte de ocupación de aula - BOTONES CORREGIDOS
-// =====================================================
 
 $page_title = 'Reporte: Ocupación de Aula';
 $dias_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
@@ -11,7 +7,7 @@ $dias_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-    /* [TODOS LOS ESTILOS SE MANTIENEN EXACTAMENTE IGUAL - solo copio los originales] */
+ 
     :root {
         --primary: #2563eb;
         --primary-hover: #1d4ed8;
@@ -155,7 +151,7 @@ $dias_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
     <div class="header-actions no-print">
         <h1 class="page-title">Ocupación de Aula</h1>
         <div class="btn-toolbar">
-            <!-- ✅ CORREGIDO: Redirige al controlador -->
+            
             <a href="<?php echo APP_URL; ?>index.php?c=reportes&a=horarioAula&periodo=<?php echo $periodo['id']; ?>&aula=<?php echo $aula['id']; ?>&formato=pdf" 
                class="btn btn-danger" target="_blank">
                 <i class="fa-solid fa-file-pdf"></i> Descargar PDF

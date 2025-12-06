@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/horarios/index.php
-// Vista principal de gestión de horarios
-// =====================================================
 
 $page_title = 'Gestión de Horarios';
 ?>

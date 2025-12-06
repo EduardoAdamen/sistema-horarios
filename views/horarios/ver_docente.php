@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/horarios/ver_docente.php
-// Vista del horario individual de un docente - DISEÑO MODERNO
-// =====================================================
+
 
 $page_title = 'Mi Horario';
 

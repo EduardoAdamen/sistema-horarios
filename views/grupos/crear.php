@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/grupos/crear.php
-// Nuevo Grupo (Con asignación de Aula, Modales y Manejo de Excepciones)
-// =====================================================
 
 $page_title = 'Nuevo Grupo';
 ?>

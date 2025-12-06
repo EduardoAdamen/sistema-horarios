@@ -1,12 +1,8 @@
 <?php
-// =====================================================
-// views/horarios/asignar.php
-// Asignación de horarios - CON MODALES Y ALERTAS MEJORADAS
-// =====================================================
 
 $page_title = 'Asignar Horarios';
 
-// --- Obtener contexto (Carrera y Semestre) ---
+// Obtener contexto (Carrera y Semestre) ---
 $db = new Database();
 $conn = $db->getConnection();
 
@@ -21,7 +17,7 @@ $stmt = $conn->prepare("SELECT nombre FROM semestres WHERE id = :id");
 $stmt->execute([':id' => $semestre_id]);
 $nombre_semestre = $stmt->fetchColumn() ?: 'Semestre no encontrado';
 
-// Generación de horas (Formato estricto '07:00')
+// Generación de horas 
 $horas_dia = [];
 for ($h = 7; $h <= 20; $h++) { 
     $horas_dia[] = sprintf('%02d:00', $h); 

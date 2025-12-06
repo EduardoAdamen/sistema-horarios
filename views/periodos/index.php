@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/periodos/index.php
-// Lista y gestión de períodos escolares - DISEÑO MODERNO
-// =====================================================
 
 $page_title = 'Gestión de Períodos Escolares';
 ?>

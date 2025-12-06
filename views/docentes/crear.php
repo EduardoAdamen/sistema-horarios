@@ -1,9 +1,4 @@
 <?php
-// =====================================================
-// views/docentes/crear.php
-// Crear docente + OPCIÓN DE CREAR CUENTA DE USUARIO
-// VERSIÓN FINAL Y DEFINITIVA
-// =====================================================
 
 $page_title = 'Nuevo Docente';
 ?>

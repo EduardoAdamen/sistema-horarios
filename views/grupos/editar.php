@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/grupos/editar.php
-// Editar Grupo - VERSIÓN COMPLETA CON MODALES Y AJAX
-// =====================================================
 
 $page_title = 'Editar Grupo';
 ?>
@@ -10,7 +6,7 @@ $page_title = 'Editar Grupo';
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-    /* Estilos Base */
+    
     :root { --primary: #2563eb; --primary-hover: #1d4ed8; --muted: #64748b; --text-main: #0f172a; --bg: #ffffff; --surface: #f8fafc; --border: #e2e8f0; --radius: 12px; }
     .page-container { font-family: "Open Sans", system-ui, Helvetica; padding: 22px; color: var(--text-main); }
     .breadcrumb-wrapper { margin-bottom: 16px; }
@@ -336,7 +332,7 @@ function confirmarCancelacion() {
         '<span style="color:#dc2626;">⚠️ Esta acción cambiará el estado del grupo a "Cancelado".</span>'
     );
     
-    // Cambiar el estado en el select
+    
     document.getElementById('estado').value = 'cancelado';
 }
 

@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/materias/crear.php
-// Crear materia - CON MANEJO DE ERRORES Y ALERTAS
-// =====================================================
+
 
 $page_title = 'Nueva Materia';
 

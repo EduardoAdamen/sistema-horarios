@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/usuarios/crear.php
-// Crear usuario administrativo - SIN ROL DOCENTE
-// =====================================================
+
 
 $page_title = 'Crear Usuario';
 ?>
@@ -169,6 +166,6 @@ function mostrarCamposRol() {
     if (rol === '<?php echo ROLE_JEFE_DEPTO; ?>') {
         campoDepto.style.display = 'block';
     } 
-    // La lógica de docente ha sido eliminada
+    
 }
 </script>

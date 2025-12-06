@@ -1,15 +1,11 @@
 <?php
-// =====================================================
-// views/reportes/horario_general.php
-// Reporte de horario general - BOTONES CORREGIDOS
-// =====================================================
 
 $page_title = 'Reporte: Horario General';
 
-// Etiquetas para la CABECERA de la tabla (Visual)
+
 $dias_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
-// Claves exactas para BUSCAR los datos (Deben coincidir con la Base de Datos/Controlador)
+
 $dias_keys   = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
 ?>
 
@@ -130,7 +126,7 @@ $dias_keys   = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
     <div class="header-actions no-print">
         <h1 class="page-title">Horario General</h1>
         <div class="btn-toolbar">
-            <!-- ✅ CORREGIDO: Ya no usa window.print(), redirige al controlador -->
+            
             <a href="<?php echo APP_URL; ?>index.php?c=reportes&a=horarioGeneral&periodo=<?php echo $periodo_id ?? ''; ?>&carrera=<?php echo $carrera_id ?? ''; ?>&semestre=<?php echo $semestre_id ?? ''; ?>&formato=pdf" class="btn btn-danger" target="_blank">
                 <i class="fa-solid fa-file-pdf"></i> Descargar PDF
             </a>

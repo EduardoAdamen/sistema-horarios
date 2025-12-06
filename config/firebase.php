@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// config/firebase.php
-// Configuración DIRECTA de Firebase
-// =====================================================
 
 class FirebaseConfig {
     private static $instance = null;
@@ -11,31 +7,20 @@ class FirebaseConfig {
     private $firebase_enabled;
     
     private function __construct() {
-        // ============================================================
-        // 1. URL DE TU PROYECTO FIREBASE
-        // ============================================================
-        // Borra la URL de abajo y pon la tuya.
-        // DEBE terminar en "/" (diagonal).
+        
         
         $this->firebase_url = 'https://horarios-tecnm-default-rtdb.firebaseio.com/'; 
         
-        // ============================================================
-        // 2. SECRET KEY (TOKEN)
-        // ============================================================
-        // Borra el token de abajo y pon el tuyo.
         
         $this->firebase_secret = 'LMLmjhBKjG0xOZDNy9aFBQqCHyIHWVmH5mdduzGF';
-        
-        // ============================================================
-        // 3. ESTADO
-        // ============================================================
+       
         $this->firebase_enabled = true;
     }
     
-    // --- NO MODIFICAR NADA DE AQUÍ PARA ABAJO ---
+  
     
     public function isEnabled() {
-        // Validación simplificada: Si hay URL y está activo, funciona.
+       
         return $this->firebase_enabled && !empty($this->firebase_url);
     }
     
@@ -57,7 +42,7 @@ class FirebaseConfig {
     public function sendData($path, $data, $method = 'PUT') {
         if (!$this->isEnabled()) return false;
 
-        // Limpieza de la URL para asegurar que termine en /
+        
         $baseUrl = rtrim($this->firebase_url, '/') . '/';
         $url = $baseUrl . $path . '.json?auth=' . $this->firebase_secret;
         
@@ -67,7 +52,7 @@ class FirebaseConfig {
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
         
-        // Ignorar verificación SSL si estás en local (Soluciona errores de cURL en Windows/XAMPP)
+        
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         

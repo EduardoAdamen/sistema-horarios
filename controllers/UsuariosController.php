@@ -1,7 +1,4 @@
 <?php
-// =====================================================
-// controllers/UsuariosController.php
-// =====================================================
 
 class UsuariosController {
     
@@ -31,7 +28,7 @@ class UsuariosController {
             return;
         }
         
-        // POST - Procesar creación
+       
         $datos = [
             'usuario' => $_POST['usuario'] ?? '',
             'password' => $_POST['password'] ?? '',
@@ -84,7 +81,7 @@ class UsuariosController {
             return;
         }
         
-        // POST - Procesar actualización
+        
         $datos = [
             'nombre' => $_POST['nombre'] ?? '',
             'apellidos' => $_POST['apellidos'] ?? '',

@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/periodos/editar.php
-// Formulario de edición de período escolar - DISEÑO MODERNO
-// =====================================================
 
 $page_title = 'Editar Período Escolar';
 ?>

@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/dashboard/docente.php
-// Dashboard específico para Docentes
-// =====================================================
+
 ?>
 
 <style>

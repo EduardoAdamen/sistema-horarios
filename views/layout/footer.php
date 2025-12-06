@@ -1,7 +1,5 @@
 <?php
-// =====================================================
-// views/layout/footer.php
-// =====================================================
+
 ?>
         </main>
     </div>
@@ -131,9 +129,6 @@
                 });
             }
             
-            // ========================================
-            // ✅ DETECCIÓN DE MENSAJES DE SESIÓN (SIN ALERT)
-            // ========================================
             <?php if (isset($_SESSION['success'])): ?>
                 mostrarModalGlobal('success', 'Operación Exitosa', '<?php echo addslashes($_SESSION['success']); ?>');
                 <?php unset($_SESSION['success']); ?>

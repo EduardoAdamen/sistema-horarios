@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/usuarios/editar.php
-// Editar usuario - DISEÑO PROFESIONAL MODERNO
-// =====================================================
 
 $page_title = 'Editar Usuario';
 ?>

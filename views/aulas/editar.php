@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/aulas/editar.php
-// Editar aula - DISEÑO PROFESIONAL MODERNO
-// =====================================================
+
 
 $page_title = 'Editar Aula';
 ?>

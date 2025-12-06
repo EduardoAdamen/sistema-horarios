@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/aulas/index.php
-// Listado de aulas - DISEÑO PROFESIONAL MODERNO
-// =====================================================
 
 $page_title = 'Gestión de Aulas';
 ?>

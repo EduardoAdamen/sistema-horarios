@@ -1,29 +1,12 @@
-/* =====================================================
-   assets/js/main.js
-   JavaScript principal del sistema
-   ===================================================== */
 
-// Esperar a que el DOM esté cargado
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Inicializar tooltips de Bootstrap
+    
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
-    
-    // ✅ COMENTADO - Ahora usamos modales personalizados en cada vista
-    // const deleteButtons = document.querySelectorAll('.btn-delete, [data-action="delete"]');
-    // deleteButtons.forEach(button => {
-    //     button.addEventListener('click', function(e) {
-    //         if (!confirm('¿Está seguro de realizar esta acción? Esta operación no se puede deshacer.')) {
-    //             e.preventDefault();
-    //             return false;
-    //         }
-    //     });
-    // });
-    
-    // Auto-cerrar alertas después de 5 segundos
+   
     const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
     alerts.forEach(alert => {
         setTimeout(() => {
@@ -44,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, false);
     });
     
-    // Toggle sidebar en móvil
+    
     const sidebarToggle = document.getElementById('sidebarToggle');
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', function() {
@@ -53,13 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-/* =====================================================
-   Funciones Globales
-   ===================================================== */
-
-/**
- * Mostrar notificación toast
- */
+// Funciones globales
 function mostrarNotificacion(tipo, mensaje) {
     const toastHTML = `
         <div class="toast align-items-center text-white bg-${tipo} border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -90,9 +67,6 @@ function mostrarNotificacion(tipo, mensaje) {
     });
 }
 
-/**
- * Mostrar loading overlay
- */
 function mostrarLoading(mensaje = 'Cargando...') {
     const loadingHTML = `
         <div id="loading-overlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" 
@@ -109,9 +83,7 @@ function mostrarLoading(mensaje = 'Cargando...') {
     document.body.insertAdjacentHTML('beforeend', loadingHTML);
 }
 
-/**
- * Ocultar loading overlay
- */
+
 function ocultarLoading() {
     const overlay = document.getElementById('loading-overlay');
     if (overlay) {
@@ -119,9 +91,7 @@ function ocultarLoading() {
     }
 }
 
-/**
- * Formatear fecha DD/MM/YYYY
- */
+
 function formatearFecha(fecha) {
     const d = new Date(fecha);
     const dia = String(d.getDate()).padStart(2, '0');
@@ -130,24 +100,18 @@ function formatearFecha(fecha) {
     return `${dia}/${mes}/${año}`;
 }
 
-/**
- * Validar formato de email
- */
+
 function validarEmail(email) {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
 }
 
-/**
- * Capitalizar primera letra
- */
+
 function capitalizar(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-/**
- * Exportar tabla a Excel (básico)
- */
+
 function exportarTablaExcel(tableId, filename = 'export.xls') {
     const table = document.getElementById(tableId);
     const html = table.outerHTML;
@@ -160,9 +124,7 @@ function exportarTablaExcel(tableId, filename = 'export.xls') {
     document.body.removeChild(downloadLink);
 }
 
-/**
- * Imprimir elemento específico
- */
+
 function imprimirElemento(elementId) {
     const printContents = document.getElementById(elementId).innerHTML;
     const originalContents = document.body.innerHTML;
@@ -172,9 +134,7 @@ function imprimirElemento(elementId) {
     location.reload();
 }
 
-/**
- * Confirmar acción con modal de Bootstrap (DEPRECADO - usar modales personalizados)
- */
+
 function confirmarAccion(titulo, mensaje, callback) {
     const modalHTML = `
         <div class="modal fade" id="modalConfirmar" tabindex="-1">
@@ -213,13 +173,7 @@ function confirmarAccion(titulo, mensaje, callback) {
     });
 }
 
-/* =====================================================
-   AJAX Helper Functions
-   ===================================================== */
 
-/**
- * Realizar petición AJAX POST
- */
 async function ajaxPost(url, data) {
     try {
         const response = await fetch(url, {

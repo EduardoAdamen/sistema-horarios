@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/periodos/crear.php
-// Formulario de creación de período escolar - DISEÑO MODERNO
-// =====================================================
 
 $page_title = 'Crear Período Escolar';
 ?>

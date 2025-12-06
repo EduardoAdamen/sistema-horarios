@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/usuarios/index.php
-// Listado de usuarios - DISEÑO PROFESIONAL MODERNO
-// =====================================================
+
 
 $page_title = 'Gestión de Usuarios';
 ?>

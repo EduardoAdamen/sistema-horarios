@@ -1,9 +1,4 @@
 <?php
-// =====================================================
-// views/docentes/editar.php
-// Editar docente + GESTIÓN DE CUENTA DE USUARIO
-// VERSIÓN CORREGIDA Y SINCRONIZADA
-// =====================================================
 
 $page_title = 'Editar Docente';
 $usuario_asociado = $usuario_asociado ?? null;
@@ -260,14 +255,14 @@ function toggleCuentaFields() {
     const bloque = document.getElementById('campos_cuenta');
     const inputPass = document.getElementById('password');
 
-    // Lógica para CREAR (Si no tiene cuenta)
+    
     if (chkCrear) {
         if (chkCrear.checked) {
             bloque.style.display = 'block';
-            inputPass.setAttribute('required', 'required'); // Obligatorio al crear
+            inputPass.setAttribute('required', 'required'); 
         } else {
             bloque.style.display = 'none';
-            inputPass.removeAttribute('required'); // No obligatorio si desmarca
+            inputPass.removeAttribute('required'); 
             inputPass.value = ''; 
         }
     }

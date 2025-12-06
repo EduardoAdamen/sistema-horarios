@@ -1,13 +1,10 @@
 <?php
-// =====================================================
-// controllers/HorariosController.php
-// =====================================================
 
 require_once MODELS_PATH . 'Horario.php';
 require_once MODELS_PATH . 'Materia.php';
 require_once MODELS_PATH . 'Grupo.php'; 
 
-// Incluir script de sincronización a Firebase
+
 require_once __DIR__ . '/../includes/firebase-sync.php'; 
 
 class HorariosController {
@@ -52,7 +49,7 @@ class HorariosController {
 
         $db = new Database(); $conn = $db->getConnection();
         
-        // Obtener contexto
+        
         $sql = "SELECT p.nombre as p_nombre, c.nombre as c_nombre, s.nombre as s_nombre 
                 FROM periodos_escolares p, carreras c, semestres s 
                 WHERE p.id=:p AND c.id=:c AND s.id=:s";
@@ -60,12 +57,12 @@ class HorariosController {
         $stmt->execute([':p'=>$periodo_id, ':c'=>$carrera_id, ':s'=>$semestre_id]);
         $contexto = $stmt->fetch();
 
-        // Obtener Grupos (ya incluyen el aula asignada por getAll del modelo)
+        // Obtener Grupos 
         $grupoModel = new Grupo();
         $grupos = $grupoModel->getAll($periodo_id, $carrera_id, $semestre_id);
         
         $docentes = $conn->query("SELECT * FROM docentes WHERE activo = 1 ORDER BY apellido_paterno")->fetchAll();
-        // Aulas solo para referencia visual, ya no para selección en horario
+       
         $aulas = $conn->query("SELECT * FROM aulas WHERE activo = 1")->fetchAll(); 
         $horarios_existentes = $this->horario_model->getHorarios($periodo_id, $carrera_id, $semestre_id);
 
@@ -73,9 +70,7 @@ class HorariosController {
         $this->loadView('horarios/asignar', $data);
     }
     
-    // -----------------------------------------------------------------
-    // GUARDAR: Toma el aula del Grupo, NO del formulario
-    // -----------------------------------------------------------------
+   
     public function guardar() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['success' => false, 'message' => 'Método no permitido']); exit;
@@ -87,7 +82,7 @@ class HorariosController {
             echo json_encode(['success' => false, 'message' => 'Grupo no especificado']); exit;
         }
 
-        // Consultar el Grupo para obtener SU Aula
+        // Consultar el Grupo para obtener su Aula
         $grupoModel = new Grupo();
         $grupoInfo = $grupoModel->getById($grupo_id);
 
@@ -105,7 +100,7 @@ class HorariosController {
 
         $aula_id_asignada = $grupoInfo['aula_id'];
 
-        // Preparar datos forzando el aula del grupo
+       
         $datos = [
             'grupo_id' => $grupo_id,
             'materia_id' => $_POST['materia_id'] ?? null,
@@ -139,13 +134,13 @@ class HorariosController {
         $db = new Database();
         $conn = $db->getConnection();
         
-        // Eliminar el horario
+        // Elimina el horario
         $sql = "DELETE FROM horarios WHERE id = :id";
         $stmt = $conn->prepare($sql);
         $stmt->execute([':id' => $id]);
         
         if ($stmt->rowCount() > 0) {
-            // Log de auditoría si existe la función
+            
             if (function_exists('logAccion')) {
                 logAccion(
                     Auth::getCurrentUser(), 
@@ -178,9 +173,8 @@ class HorariosController {
     exit;
 }
     
-    // -----------------------------------------------------------------
-    // CONCILIAR: Marca estado y sincroniza a Firebase
-    // -----------------------------------------------------------------
+    // Marca estado y sincroniza a Firebase
+   
     public function conciliar() {
         if (!Auth::hasRole(ROLE_JEFE_DEPTO)) {
             header('Location: index.php?c=dashboard&error=access'); exit;
@@ -195,11 +189,11 @@ class HorariosController {
             header('Location: index.php?c=horarios'); exit;
         }
         
-        // 1. Marcar como conciliado en MySQL
+        // Marcar como conciliado en MySQL
         $result = $this->horario_model->marcarComoConciliado($periodo_id, $carrera_id, $semestre_id);
         
         if ($result['success']) {
-            // 2. Sincronizar a Firebase
+            //  Sincronizar a Firebase
             try {
                 if (function_exists('sincronizarHorariosFirebase')) {
                     $syncResult = sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id);
@@ -224,7 +218,7 @@ class HorariosController {
         exit;
     }
     
-    // Métodos para API JSON (utilizados por el frontend Drag & Drop)
+
     public function obtenerHorarios() {
         header('Content-Type: application/json');
         $periodo_id = $_GET['periodo'] ?? null;
@@ -253,7 +247,7 @@ class HorariosController {
         exit;
     }
 
-    // Copia del método verDocente para reportes individuales
+    
     public function verDocente() {
         $docente_id = $_GET['docente'] ?? null;
         $periodo_id = $_GET['periodo'] ?? null;

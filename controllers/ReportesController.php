@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// controllers/ReportesController.php
-// ✅ VERSIÓN CORREGIDA - PDF limpio y CSV con acentos
-// =====================================================
 
 class ReportesController {
     
@@ -34,9 +30,7 @@ class ReportesController {
         $this->loadView('reportes/index', $data);
     }
     
-    /**
-     * ✅ HORARIO GENERAL
-     */
+
     public function horarioGeneral() {
         $periodo_id = $_GET['periodo'] ?? null;
         $carrera_id = $_GET['carrera'] ?? null;
@@ -49,7 +43,7 @@ class ReportesController {
             exit;
         }
         
-        // Información contextual
+      
         $sql_info = "SELECT 
                         p.nombre as periodo_nombre,
                         c.nombre as carrera_nombre,
@@ -127,9 +121,7 @@ class ReportesController {
         }
     }
     
-    /**
-     * ✅ HORARIO POR DOCENTE
-     */
+   
     public function horarioDocente() {
         $periodo_id = $_GET['periodo'] ?? null;
         $docente_id = $_GET['docente'] ?? null;
@@ -210,9 +202,7 @@ class ReportesController {
         }
     }
     
-    /**
-     * ✅ HORARIO POR AULA
-     */
+  
     public function horarioAula() {
         $periodo_id = $_GET['periodo'] ?? null;
         $aula_id = $_GET['aula'] ?? null;
@@ -294,9 +284,7 @@ class ReportesController {
         }
     }
     
-    /**
-     * ✅ CARGA HORARIA DE DOCENTES
-     */
+   
     public function cargaDocentes() {
         $periodo_id = $_GET['periodo'] ?? null;
         $formato = $_GET['formato'] ?? 'html';
@@ -384,10 +372,7 @@ class ReportesController {
         ];
     }
 
-    /**
-     * ✅ GENERAR PDF - VERSIÓN CORREGIDA
-     * Genera vista limpia SIN layout del sistema
-     */
+   
     private function generarPDF($tipo, $data) {
         // Extraer datos para la vista
         extract($data);
@@ -395,7 +380,7 @@ class ReportesController {
         // Iniciar buffer de salida
         ob_start();
         
-        // Cargar SOLO la vista del reporte (sin header/footer del sistema)
+       
         require_once VIEWS_PATH . 'reportes/pdf/' . $tipo . '.php';
         
         // Capturar contenido
@@ -406,10 +391,7 @@ class ReportesController {
         exit;
     }
     
-    /**
-     * ✅ EXPORTAR EXCEL - VERSIÓN CORREGIDA
-     * CSV con encoding UTF-8 correcto
-     */
+  
     private function exportarExcel($tipo, $data) {
         // Configurar headers para UTF-8
         header('Content-Type: text/csv; charset=utf-8');
@@ -417,7 +399,7 @@ class ReportesController {
         
         $output = fopen('php://output', 'w');
         
-        // BOM para UTF-8 (crucial para Excel)
+      
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
         
         switch ($tipo) {

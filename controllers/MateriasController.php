@@ -1,7 +1,4 @@
 <?php
-// =====================================================
-// controllers/MateriasController.php - COMPLETO CON MANEJO DE EXCEPCIONES
-// =====================================================
 
 require_once MODELS_PATH . 'Materia.php';
 
@@ -10,7 +7,7 @@ class MateriasController {
     private $materia_model;
     
     public function __construct() {
-        // Verificar permisos (Admitimos DEP también porque necesita ver materias para crear grupos)
+      
         if (!Auth::isLoggedIn()) {
             header('Location: login.php');
             exit;
@@ -61,7 +58,7 @@ class MateriasController {
             exit;
         }
 
-        // GET: Mostrar formulario
+      
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             try {
                 $db = new Database();
@@ -85,9 +82,8 @@ class MateriasController {
             return;
         }
         
-        // POST: Procesar creación
         try {
-            // Validar datos del formulario
+            
             $errores = $this->validarDatosMateria($_POST);
             
             if (!empty($errores)) {
@@ -141,7 +137,7 @@ class MateriasController {
         }
         
         try {
-            // GET: Mostrar formulario de edición
+            
             if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 $materia = $this->materia_model->getById($id);
                 
@@ -167,7 +163,6 @@ class MateriasController {
                 return;
             }
             
-            // POST: Procesar actualización
             $errores = $this->validarDatosMateria($_POST);
             
             if (!empty($errores)) {
@@ -241,14 +236,11 @@ class MateriasController {
         header('Location: index.php?c=materias');
         exit;
     }
-    
-    /**
-     * Valida los datos del formulario de materia
-     */
+ 
     private function validarDatosMateria($datos) {
         $errores = [];
         
-        // Validar clave
+      
         if (empty($datos['clave'])) {
             $errores[] = 'La clave es obligatoria';
         } elseif (strlen($datos['clave']) > 20) {
@@ -257,7 +249,7 @@ class MateriasController {
             $errores[] = 'La clave solo puede contener letras, números y guiones';
         }
         
-        // Validar nombre
+        
         if (empty($datos['nombre'])) {
             $errores[] = 'El nombre de la materia es obligatorio';
         } elseif (strlen($datos['nombre']) < 3) {
@@ -302,11 +294,9 @@ class MateriasController {
         require_once VIEWS_PATH . 'layout/footer.php';
     }
 
-    // =========================================================================
-    // MÉTODO AJAX - OBLIGATORIO PARA QUE FUNCIONE LA CREACIÓN DE GRUPOS
-    // =========================================================================
+  
     public function obtenerPorCarreraYSemestre() {
-        // Limpiamos buffer por si acaso hay salidas previas
+       
         if (ob_get_length()) ob_clean();
         header('Content-Type: application/json');
         
@@ -321,7 +311,7 @@ class MateriasController {
         try {
             $materias = $this->materia_model->getAll($carrera_id, $semestre_id);
             
-            // Formatear solo los datos necesarios para el select
+           
             $resultado = array_map(function($materia) {
                 return [
                     'id' => $materia['id'],

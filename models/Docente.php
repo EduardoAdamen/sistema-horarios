@@ -1,7 +1,5 @@
 <?php
-// =====================================================
-// models/Docente.php
-// =====================================================
+
 class Docente {
     private $conn;
     private $table = 'docentes';
@@ -113,9 +111,7 @@ class Docente {
         return $result['horas_asignadas'] ?? 0;
     }
 
-        /**
-     * Obtener docente por número de empleado
-     */
+      
     public function getByNumeroEmpleado($numero_empleado) {
         $sql = "SELECT * FROM {$this->table} WHERE numero_empleado = :num AND activo = 1";
         $stmt = $this->conn->prepare($sql);

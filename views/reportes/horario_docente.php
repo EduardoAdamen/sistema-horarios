@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/reportes/horario_docente.php
-// Reporte de horario por docente - BOTONES CORREGIDOS
-// =====================================================
 
 $page_title = 'Reporte: Horario por Docente';
 $dias_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];

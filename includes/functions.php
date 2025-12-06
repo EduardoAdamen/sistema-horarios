@@ -1,7 +1,5 @@
 <?php
-/**
- * Sanitizar input para prevenir XSS
- */
+
 function sanitize_input($data) {
     $data = trim($data);
     $data = stripslashes($data);
@@ -9,9 +7,7 @@ function sanitize_input($data) {
     return $data;
 }
 
-/**
- * Generar token CSRF
- */
+
 function generateCSRFToken() {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -19,9 +15,6 @@ function generateCSRFToken() {
     return $_SESSION['csrf_token'];
 }
 
-/**
- * Verificar token CSRF
- */
 function verifyCSRFToken($token) {
     if (!isset($_SESSION['csrf_token'])) {
         return false;
@@ -29,9 +22,7 @@ function verifyCSRFToken($token) {
     return hash_equals($_SESSION['csrf_token'], $token);
 }
 
-/**
- * Redirigir con mensaje
- */
+
 function redirect($url, $message = null, $type = 'success') {
     if ($message) {
         $_SESSION[$type] = $message;
@@ -40,9 +31,7 @@ function redirect($url, $message = null, $type = 'success') {
     exit;
 }
 
-/**
- * Verificar que el usuario tiene permiso
- */
+
 function checkPermission($required_roles) {
     if (!is_array($required_roles)) {
         $required_roles = [$required_roles];
@@ -53,23 +42,17 @@ function checkPermission($required_roles) {
     }
 }
 
-/**
- * Formatear fecha para MySQL
- */
+
 function formatDateForDB($date) {
     return date('Y-m-d H:i:s', strtotime($date));
 }
 
-/**
- * Formatear fecha para mostrar
- */
+
 function formatDateForDisplay($date) {
     return date('d/m/Y', strtotime($date));
 }
 
-/**
- * Validar archivo subido
- */
+
 function validateUploadedFile($file, $allowed_types = [], $max_size = MAX_UPLOAD_SIZE) {
     if ($file['error'] !== UPLOAD_ERR_OK) {
         return ['success' => false, 'message' => 'Error al subir el archivo'];
@@ -87,17 +70,13 @@ function validateUploadedFile($file, $allowed_types = [], $max_size = MAX_UPLOAD
     return ['success' => true];
 }
 
-/**
- * Generar nombre único para archivo
- */
+
 function generateUniqueFileName($original_name) {
     $ext = pathinfo($original_name, PATHINFO_EXTENSION);
     return uniqid() . '_' . time() . '.' . $ext;
 }
 
-/**
- * Procesar archivo CSV
- */
+
 function processCSV($file_path) {
     $data = [];
     
@@ -114,9 +93,7 @@ function processCSV($file_path) {
     return $data;
 }
 
-/**
- * Obtener periodo activo
- */
+
 function getPeriodoActivo() {
     $db = new Database();
     $conn = $db->getConnection();
@@ -127,9 +104,7 @@ function getPeriodoActivo() {
     return $stmt->fetch();
 }
 
-/**
- * Convertir día de semana a número
- */
+
 function diaToNumero($dia) {
     $dias = [
         'lunes' => 1,
@@ -142,41 +117,29 @@ function diaToNumero($dia) {
     return $dias[$dia] ?? 0;
 }
 
-/**
- * Generar PDF (requiere librería FPDF o similar)
- */
+
 function generarPDF($titulo, $contenido, $orientacion = 'P') {
-    // Implementar con librería FPDF o TCPDF
-    // Este es un placeholder
+    
     return true;
 }
 
-/**
- * Limpiar nombre de archivo para guardado seguro
- */
+
 function sanitizeFileName($filename) {
     $filename = preg_replace('/[^a-zA-Z0-9._-]/', '', $filename);
     return $filename;
 }
 
-/**
- * Obtener extensión de archivo
- */
+
 function getFileExtension($filename) {
     return strtolower(pathinfo($filename, PATHINFO_EXTENSION));
 }
 
-/**
- * Verificar si es petición AJAX
- */
+
 function isAjaxRequest() {
     return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 }
 
-/**
- * Respuesta JSON
- */
 function jsonResponse($data, $status_code = 200) {
     http_response_code($status_code);
     header('Content-Type: application/json');
@@ -184,16 +147,12 @@ function jsonResponse($data, $status_code = 200) {
     exit;
 }
 
-/**
- * Escapar HTML
- */
+
 function e($string) {
     return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
 }
 
-/**
- * Debug helper
- */
+
 function dd($data) {
     echo '<pre>';
     var_dump($data);

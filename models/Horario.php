@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// models/Horario.php
-// Modelo principal para gestión de horarios
-// =====================================================
 
 class Horario {
     private $conn;
@@ -13,9 +9,7 @@ class Horario {
         $this->conn = $database->getConnection();
     }
     
-    /**
-     * Obtener horarios con filtros
-     */
+    
     public function getHorarios($periodo_id, $carrera_id = null, $semestre_id = null, $estado = null) {
         $sql = "SELECT h.*, 
                 m.clave as materia_clave, m.nombre as materia_nombre, m.creditos,
@@ -57,10 +51,7 @@ class Horario {
         return $stmt->fetchAll();
     }
     
-    /**
-     * Obtener horario por ID con toda la información
-     * ✅ MÉTODO NUEVO AGREGADO
-     */
+    
     public function getById($id) {
         $sql = "SELECT h.*, 
                 m.clave as materia_clave, m.nombre as materia_nombre,
@@ -83,9 +74,7 @@ class Horario {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
-    /**
-     * Obtener horarios de un docente específico
-     */
+    
     public function getHorariosByDocente($docente_id, $periodo_id) {
         $sql = "SELECT 
                     h.*,
@@ -117,12 +106,9 @@ class Horario {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
     
-    /**
-     * Crear nuevo bloque de horario
-     * ✅ MODIFICADO: Ahora devuelve el horario completo
-     */
+    
     public function create($datos) {
-        // Validar antes de insertar
+        
         $validacion = $this->validarHorario($datos);
         if (!$validacion['success']) {
             return $validacion;
@@ -153,30 +139,27 @@ class Horario {
         if ($stmt->execute()) {
             $id = $this->conn->lastInsertId();
             
-            // Log de auditoría
+            
             logAccion($usuario, $_SESSION['rol'], 'CREATE', 'horarios', $id, 
                      "Horario creado para {$datos['dia']} {$datos['hora_inicio']}");
             
-            // ✅ CAMBIO IMPORTANTE: Obtener y devolver información completa del horario
+            
             $horario_completo = $this->getById($id);
             
             return [
                 'success' => true, 
                 'id' => $id,
-                'horario' => $horario_completo // ← Información completa para actualizar el DOM
+                'horario' => $horario_completo 
             ];
         }
         
         return ['success' => false, 'message' => 'Error al guardar el horario'];
     }
     
-    /**
-     * Eliminar horario
-     * ✅ MÉTODO NUEVO AGREGADO
-     */
+    
     public function delete($id) {
         try {
-            // Verificar que el horario existe
+            // Verifica que el horario existe
             $sql = "SELECT id, estado FROM {$this->table} WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -187,13 +170,13 @@ class Horario {
                 return ['success' => false, 'message' => 'Horario no encontrado'];
             }
             
-            // Eliminar el horario
+            // Elimina el horario
             $sql = "DELETE FROM {$this->table} WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             
             if ($stmt->execute()) {
-                // Log de auditoría
+                
                 $usuario = Auth::getCurrentUser();
                 logAccion($usuario, $_SESSION['rol'], 'DELETE', 'horarios', $id, 
                          "Horario eliminado (estado anterior: {$horario['estado']})");
@@ -208,12 +191,9 @@ class Horario {
         }
     }
     
-    /**
-     * Actualizar horario existente
-     * ✅ MÉTODO NUEVO AGREGADO (opcional, para futuras ediciones)
-     */
+    
     public function update($id, $datos) {
-        // Validar antes de actualizar
+        
         $validacion = $this->validarHorario($datos, $id);
         if (!$validacion['success']) {
             return $validacion;
@@ -256,30 +236,28 @@ class Horario {
         return ['success' => false, 'message' => 'Error al actualizar el horario'];
     }
     
-    /**
-     * Validar horario antes de guardar
-     */
+    
     private function validarHorario($datos, $id_excluir = null) {
-        // 1. Validar que la hora de fin sea mayor a la hora de inicio
+        // 1. Valida que la hora de fin sea mayor a la hora de inicio
         if (strtotime($datos['hora_inicio']) >= strtotime($datos['hora_fin'])) {
             return ['success' => false, 'message' => 'La hora de fin debe ser mayor a la hora de inicio'];
         }
         
-        // 2. Validar solapamiento de docente
+        // 2. Valida solapamiento de docente
         if ($datos['docente_id']) {
             if ($this->verificarSolapamientoDocente($datos, $id_excluir)) {
                 return ['success' => false, 'message' => 'El docente ya tiene asignación en este horario'];
             }
         }
         
-        // 3. Validar solapamiento de aula
+        // 3. Valida solapamiento de aula
         if ($datos['aula_id']) {
             if ($this->verificarSolapamientoAula($datos, $id_excluir)) {
                 return ['success' => false, 'message' => 'El aula ya está ocupada en este horario'];
             }
         }
         
-        // 4. Validar créditos vs días (si existe la clase Materia)
+        // 4. Valida créditos y dias
         if (class_exists('Materia')) {
             $materia = new Materia();
             $info_materia = $materia->getById($datos['materia_id']);
@@ -296,10 +274,7 @@ class Horario {
         return ['success' => true];
     }
     
-    /**
-     * Verificar solapamiento de docente
-     * ✅ CORREGIDO: Condición de solapamiento mejorada
-     */
+   
     private function verificarSolapamientoDocente($datos, $id_excluir = null) {
         $sql = "SELECT COUNT(*) as total FROM {$this->table} 
                 WHERE docente_id = :docente_id 
@@ -330,10 +305,6 @@ class Horario {
         return $result['total'] > 0;
     }
     
-    /**
-     * Verificar solapamiento de aula
-     * ✅ CORREGIDO: Condición de solapamiento mejorada
-     */
     private function verificarSolapamientoAula($datos, $id_excluir = null) {
         $sql = "SELECT COUNT(*) as total FROM {$this->table} 
                 WHERE aula_id = :aula_id 
@@ -363,15 +334,12 @@ class Horario {
         
         return $result['total'] > 0;
     }
-    
-    /**
-     * Marcar horarios como conciliados y sincronizar con Firebase
-     */
+   
     public function marcarComoConciliado($periodo_id, $carrera_id, $semestre_id) {
         try {
             $this->conn->beginTransaction();
             
-            // Actualizar estado de horarios
+            // Actualiza estado de horarios
             $sql = "UPDATE {$this->table} h
                     INNER JOIN materias m ON h.materia_id = m.id
                     SET h.estado = 'conciliado', h.updated_by = :usuario
@@ -390,7 +358,7 @@ class Horario {
             
             $affected_rows = $stmt->rowCount();
             
-            // Sincronizar con Firebase (si el archivo existe)
+            // Sincroniza con Firebase 
             if (file_exists(INCLUDES_PATH . 'firebase-sync.php')) {
                 require_once INCLUDES_PATH . 'firebase-sync.php';
                 $sync_result = sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id);
@@ -418,10 +386,7 @@ class Horario {
         }
     }
     
-    /**
-     * Obtener estadísticas de horarios por periodo
-     * ✅ MÉTODO ADICIONAL ÚTIL
-     */
+  
     public function getEstadisticas($periodo_id) {
         $sql = "SELECT 
                     COUNT(*) as total_horarios,
@@ -440,10 +405,7 @@ class Horario {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
     
-    /**
-     * Verificar disponibilidad de un docente en un día/hora específicos
-     * ✅ MÉTODO ADICIONAL ÚTIL
-     */
+  
     public function verificarDisponibilidadDocente($docente_id, $periodo_id, $dia, $hora_inicio, $hora_fin, $excluir_id = null) {
         $sql = "SELECT h.*, 
                 m.nombre as materia_nombre,

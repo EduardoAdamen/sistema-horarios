@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/grupos/index.php
-// ✅ VERSIÓN SIMPLE - Usa confirm() nativo
-// =====================================================
+
 
 $page_title = 'Gestión de Grupos';
 ?>

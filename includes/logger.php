@@ -1,5 +1,5 @@
 <?php
-// includes/logger.php
+
 // Función para registrar acciones del sistema en un archivo de log.
 
 if (!function_exists('logAccion')) {
@@ -22,14 +22,14 @@ if (!function_exists('logAccion')) {
             PHP_EOL
         );
 
-        // Directorio de logs (uno arriba de includes/)
+        
         $logDir = __DIR__ . '/../logs';
         if (!is_dir($logDir)) {
             @mkdir($logDir, 0700, true);
         }
 
         $logFile = $logDir . '/acciones.log';
-        // Intentar escribir; silenciar errores para no romper ejecución en producción
+       
         @file_put_contents($logFile, $entry, FILE_APPEND | LOCK_EX);
         return true;
     }

@@ -1,8 +1,5 @@
 <?php
-// =====================================================
-// views/materias/editar.php
-// Editar materia - DISEÑO PROFESIONAL MODERNO
-// =====================================================
+
 
 $page_title = 'Editar Materia';
 ?>

@@ -1,8 +1,4 @@
 <?php  
-// =====================================================
-// views/materias/index.php
-// Listado de materias - DISEÑO PROFESIONAL MODERNO
-// =====================================================
 
 $page_title = 'Gestión de Materias';
 ?>
@@ -27,8 +23,7 @@ $page_title = 'Gestión de Materias';
         color: var(--text-main);
     }
 
-    /* --------------------------- BREADCRUMB --------------------------- */
-    /* ------------------------ BREADCRUMB LIMPIO ------------------------ */
+   
 .breadcrumb-wrapper {
     margin-bottom: 16px;
 }

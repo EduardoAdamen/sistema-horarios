@@ -1,7 +1,5 @@
 <?php
-// =====================================================
-// models/Materia.php - CON MANEJO DE EXCEPCIONES
-// =====================================================
+
 class Materia {
     private $conn;
     private $table = 'materias';
@@ -11,9 +9,7 @@ class Materia {
         $this->conn = $database->getConnection();
     }
     
-    /**
-     * Obtener todas las materias activas
-     */
+   
     public function getAll($carrera_id = null, $semestre_id = null) {
         try {
             $sql = "SELECT m.*, c.nombre as carrera_nombre, s.nombre as semestre_nombre 
@@ -49,9 +45,6 @@ class Materia {
         }
     }
     
-    /**
-     * Obtener una materia por ID
-     */
     public function getById($id) {
         try {
             $sql = "SELECT m.*, c.nombre as carrera_nombre, s.nombre as semestre_nombre 
@@ -71,9 +64,7 @@ class Materia {
         }
     }
     
-    /**
-     * Verifica si ya existe una materia con la misma clave
-     */
+   
     public function existeClave($clave, $excluir_id = null) {
         try {
             $sql = "SELECT COUNT(*) as total FROM {$this->table} 
@@ -97,13 +88,10 @@ class Materia {
             return $result['total'] > 0;
         } catch (PDOException $e) {
             error_log("Error en Materia::existeClave - " . $e->getMessage());
-            return true; // Por seguridad, asumimos que existe
+            return true; 
         }
     }
-    
-    /**
-     * Verifica si una carrera existe y está activa
-     */
+   
     public function carreraExiste($carrera_id) {
         try {
             $sql = "SELECT COUNT(*) as total FROM carreras WHERE id = :id AND activo = 1";
@@ -118,9 +106,7 @@ class Materia {
         }
     }
     
-    /**
-     * Verifica si un semestre existe
-     */
+   
     public function semestreExiste($semestre_id) {
         try {
             $sql = "SELECT COUNT(*) as total FROM semestres WHERE id = :id";
@@ -135,12 +121,10 @@ class Materia {
         }
     }
     
-    /**
-     * Crear nueva materia
-     */
+    
     public function create($datos) {
         try {
-            // Validaciones básicas
+            
             if (empty($datos['clave']) || empty($datos['nombre'])) {
                 return [
                     'success' => false,
@@ -162,7 +146,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si la carrera existe
+            // Verifica si la carrera existe
             if (!$this->carreraExiste($datos['carrera_id'])) {
                 return [
                     'success' => false,
@@ -170,7 +154,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si el semestre existe
+            // Verifica si el semestre existe
             if (!$this->semestreExiste($datos['semestre_id'])) {
                 return [
                     'success' => false,
@@ -178,7 +162,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si ya existe la clave
+            // Verifica si ya existe la clave
             if ($this->existeClave($datos['clave'])) {
                 return [
                     'success' => false,
@@ -215,8 +199,8 @@ class Materia {
         } catch (PDOException $e) {
             error_log("Error en Materia::create - " . $e->getMessage());
             
-            // Verificar código de error específico
-            if ($e->getCode() == 23000) { // Violación de integridad
+            
+            if ($e->getCode() == 23000) { 
                 if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
                     if (strpos($e->getMessage(), 'clave') !== false) {
                         return [
@@ -249,12 +233,10 @@ class Materia {
         }
     }
     
-    /**
-     * Actualizar materia
-     */
+    
     public function update($id, $datos) {
         try {
-            // Validaciones básicas
+            
             if (empty($datos['clave']) || empty($datos['nombre'])) {
                 return [
                     'success' => false,
@@ -276,7 +258,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si la materia existe
+            // Verifica si la materia existe
             $materiaActual = $this->getById($id);
             if (!$materiaActual) {
                 return [
@@ -285,7 +267,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si la carrera existe
+            // Verifica si la carrera existe
             if (!$this->carreraExiste($datos['carrera_id'])) {
                 return [
                     'success' => false,
@@ -293,7 +275,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si el semestre existe
+            // Verifica si el semestre existe
             if (!$this->semestreExiste($datos['semestre_id'])) {
                 return [
                     'success' => false,
@@ -301,7 +283,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si ya existe otra materia con la misma clave
+            // Verifica si ya existe otra materia con la misma clave
             if ($this->existeClave($datos['clave'], $id)) {
                 return [
                     'success' => false,
@@ -364,12 +346,10 @@ class Materia {
         }
     }
     
-    /**
-     * Eliminar materia (desactivar)
-     */
+   
     public function delete($id) {
         try {
-            // Verificar si la materia existe
+            // Verifica si la materia existe
             $materia = $this->getById($id);
             if (!$materia) {
                 return [
@@ -378,7 +358,7 @@ class Materia {
                 ];
             }
             
-            // Verificar si la materia tiene grupos asignados
+            // Verifica si la materia tiene grupos asignados
             $sql = "SELECT COUNT(*) as total FROM grupos WHERE materia_id = :materia_id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':materia_id', $id);
@@ -392,7 +372,7 @@ class Materia {
                 ];
             }
             
-            // Soft delete
+            
             $sql = "UPDATE {$this->table} SET activo = 0 WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
@@ -431,10 +411,7 @@ class Materia {
         }
     }
     
-    /**
-     * Obtener días máximos permitidos según créditos
-     * 5 créditos = hasta viernes, 4 créditos = hasta jueves
-     */
+    
     public function getDiasMaximosPorCreditos($creditos) {
         if ($creditos >= 5) {
             return ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];

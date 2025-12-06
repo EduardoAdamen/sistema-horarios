@@ -1,7 +1,5 @@
 <?php
-// =====================================================
-// controllers/AulasController.php - CON MANEJO DE EXCEPCIONES
-// =====================================================
+
 require_once MODELS_PATH . 'Aula.php';
 
 class AulasController {
@@ -38,7 +36,7 @@ class AulasController {
         }
         
         try {
-            // Validar datos del formulario
+            
             $errores = $this->validarDatosAula($_POST);
             
             if (!empty($errores)) {
@@ -86,7 +84,7 @@ class AulasController {
         }
         
         try {
-            // GET: Mostrar formulario de edición
+            
             if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 $aula = $this->aula_model->getById($id);
                 
@@ -101,7 +99,7 @@ class AulasController {
                 return;
             }
             
-            // POST: Procesar actualización
+           
             $errores = $this->validarDatosAula($_POST);
             
             if (!empty($errores)) {
@@ -170,27 +168,25 @@ class AulasController {
         exit;
     }
     
-    /**
-     * Valida los datos del formulario de aula
-     */
+    
     private function validarDatosAula($datos) {
         $errores = [];
         
-        // Validar edificio
+        // Valida edificio
         if (empty($datos['edificio'])) {
             $errores[] = 'El edificio es obligatorio';
         } elseif (strlen($datos['edificio']) > 50) {
             $errores[] = 'El edificio no puede tener más de 50 caracteres';
         }
         
-        // Validar número
+        // Valida número
         if (empty($datos['numero'])) {
             $errores[] = 'El número de aula es obligatorio';
         } elseif (strlen($datos['numero']) > 20) {
             $errores[] = 'El número de aula no puede tener más de 20 caracteres';
         }
         
-        // Validar capacidad
+        // Valida capacidad
         $capacidad = (int)($datos['capacidad'] ?? 0);
         if ($capacidad <= 0) {
             $errores[] = 'La capacidad debe ser mayor a 0';
@@ -198,7 +194,7 @@ class AulasController {
             $errores[] = 'La capacidad no puede ser mayor a 500';
         }
         
-        // Validar tipo
+        // Valida tipo
         $tipos_validos = ['normal', 'laboratorio', 'taller', 'auditorio'];
         if (empty($datos['tipo'])) {
             $errores[] = 'El tipo de aula es obligatorio';
@@ -206,7 +202,7 @@ class AulasController {
             $errores[] = 'El tipo de aula no es válido';
         }
         
-        // Validar equipamiento (opcional)
+        // Valida equipamiento
         if (!empty($datos['equipamiento']) && strlen($datos['equipamiento']) > 500) {
             $errores[] = 'El equipamiento no puede tener más de 500 caracteres';
         }

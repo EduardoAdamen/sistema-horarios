@@ -1,7 +1,5 @@
 <?php
-// =====================================================
-// models/Aula.php - CON MANEJO DE EXCEPCIONES
-// =====================================================
+
 class Aula {
     private $conn;
     private $table = 'aulas';
@@ -48,9 +46,6 @@ class Aula {
         }
     }
     
-    /**
-     * Verifica si ya existe un aula con el mismo edificio y número
-     */
     public function existeAula($edificio, $numero, $excluir_id = null) {
         try {
             $sql = "SELECT COUNT(*) as total FROM {$this->table} 
@@ -76,13 +71,13 @@ class Aula {
             return $result['total'] > 0;
         } catch (PDOException $e) {
             error_log("Error en Aula::existeAula - " . $e->getMessage());
-            return true; // Por seguridad, asumimos que existe
+            return true; 
         }
     }
     
     public function create($datos) {
         try {
-            // Validaciones básicas
+            
             if (empty($datos['edificio']) || empty($datos['numero'])) {
                 return [
                     'success' => false, 
@@ -97,7 +92,7 @@ class Aula {
                 ];
             }
             
-            // Verificar si ya existe el aula
+            // Verifica si ya existe el aula
             if ($this->existeAula($datos['edificio'], $datos['numero'])) {
                 return [
                     'success' => false,
@@ -133,8 +128,7 @@ class Aula {
         } catch (PDOException $e) {
             error_log("Error en Aula::create - " . $e->getMessage());
             
-            // Verificar código de error específico
-            if ($e->getCode() == 23000) { // Violación de integridad
+            if ($e->getCode() == 23000) { 
                 if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
                     return [
                         'success' => false,
@@ -156,14 +150,14 @@ class Aula {
             error_log("Error general en Aula::create - " . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Ocurrió un error inesperado. Contacte al administrador.'
+                'message' => 'Ocurrió un error inesperado.'
             ];
         }
     }
     
     public function update($id, $datos) {
         try {
-            // Validaciones básicas
+            
             if (empty($datos['edificio']) || empty($datos['numero'])) {
                 return [
                     'success' => false, 
@@ -178,7 +172,7 @@ class Aula {
                 ];
             }
             
-            // Verificar si el aula existe
+            // Verifica si el aula existe
             $aulaActual = $this->getById($id);
             if (!$aulaActual) {
                 return [
@@ -187,7 +181,7 @@ class Aula {
                 ];
             }
             
-            // Verificar si ya existe otro aula con el mismo código
+            // Verifica si ya existe otra aula con el mismo código
             if ($this->existeAula($datos['edificio'], $datos['numero'], $id)) {
                 return [
                     'success' => false,
@@ -249,7 +243,7 @@ class Aula {
     
     public function delete($id) {
         try {
-            // Verificar si el aula existe
+            // Verifica si el aula existe
             $aula = $this->getById($id);
             if (!$aula) {
                 return [
@@ -258,7 +252,7 @@ class Aula {
                 ];
             }
             
-            // Verificar si el aula tiene horarios asignados
+            // Verifica si el aula tiene horarios asignados
             $sql = "SELECT COUNT(*) as total FROM horarios 
                     WHERE aula_id = :aula_id";
             $stmt = $this->conn->prepare($sql);
@@ -272,8 +266,7 @@ class Aula {
                     'message' => 'No se puede eliminar el aula porque tiene horarios asignados. Primero elimine los horarios asociados.'
                 ];
             }
-            
-            // Soft delete
+          
             $sql = "UPDATE {$this->table} SET activo = 0 WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
@@ -342,7 +335,7 @@ class Aula {
             return $result['total'] == 0;
         } catch (PDOException $e) {
             error_log("Error en Aula::verificarDisponibilidad - " . $e->getMessage());
-            return false; // Por seguridad, asumimos que NO está disponible
+            return false; 
         }
     }
 }

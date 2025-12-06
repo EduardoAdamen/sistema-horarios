@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/aulas/crear.php
-// Crear aula - CON MANEJO DE ERRORES Y ALERTAS
-// =====================================================
 
 $page_title = 'Nueva Aula';
 

@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/dashboard/index.php
-// Vista del Dashboard principal - REDISEÑADO MODERNO
-// =====================================================
 
 $page_title = 'Dashboard';
 

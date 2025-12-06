@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/reportes/index.php
-// Menú principal de reportes - DISEÑO PROFESIONAL MODERNO
-// =====================================================
 
 $page_title = 'Reportes';
 ?>

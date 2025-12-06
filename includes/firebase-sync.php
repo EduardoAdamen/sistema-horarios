@@ -1,15 +1,14 @@
 <?php
-// =====================================================
-// includes/firebase-sync.php
+
 // Sincronización de horarios con Firebase
-// =====================================================
+
 
 require_once __DIR__ . '/../config/firebase.php';
 require_once __DIR__ . '/../config/database.php';
 
 function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
     try {
-        // 1. Instanciar configuración de Firebase existente
+        // Instanciar configuración de Firebase existente
         $firebase = FirebaseConfig::getInstance();
         
         if (!$firebase->isEnabled()) {
@@ -19,7 +18,7 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
         $db = new Database();
         $conn = $db->getConnection();
         
-        // 2. Obtener información del contexto (Nombres legibles para el JSON)
+        // Obtener información del contexto 
         $sql_info = "SELECT 
                         p.nombre as periodo_nombre,
                         c.nombre as carrera_nombre,
@@ -44,10 +43,8 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
             throw new Exception("No se encontró información del periodo/carrera/semestre.");
         }
         
-        // 3. Obtener los horarios conciliados
-        // =================================================================
-        // CAMBIO CLAVE: El JOIN de aulas se hace con 'grupos' (g.aula_id)
-        // =================================================================
+        // Obtener los horarios conciliados
+      
         $sql = "SELECT 
                     h.id, h.dia, h.hora_inicio, h.hora_fin,
                     m.clave as materia_clave, m.nombre as materia_nombre,
@@ -58,7 +55,7 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
                 INNER JOIN materias m ON h.materia_id = m.id
                 INNER JOIN grupos g ON h.grupo_id = g.id
                 LEFT JOIN docentes d ON h.docente_id = d.id
-                LEFT JOIN aulas a ON g.aula_id = a.id  -- << AULA VIENE DEL GRUPO (DEP)
+                LEFT JOIN aulas a ON g.aula_id = a.id  
                 WHERE h.periodo_id = :periodo_id
                 AND m.carrera_id = :carrera_id
                 AND m.semestre_id = :semestre_id
@@ -74,7 +71,7 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
         
         $horarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // 4. Organizar estructura JSON (Dia -> Lista de Clases)
+        // Organizar estructura JSON (Dia -> Lista de Clases)
         $horarios_organizados = [
             'lunes' => [], 'martes' => [], 'miercoles' => [], 'jueves' => [], 'viernes' => []
         ];
@@ -82,13 +79,13 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
         foreach ($horarios as $horario) {
             $dia = strtolower($horario['dia']);
             
-            // Limpiamos segundos de las horas (07:00:00 -> 07:00)
+           
             $item = [
                 'materia' => $horario['materia_nombre'],
                 'clave' => $horario['materia_clave'],
                 'grupo' => $horario['grupo_clave'],
                 'docente' => $horario['docente'] ?? 'Sin asignar',
-                'aula' => $horario['aula'] ?? 'Sin asignar', // Muestra aula del grupo
+                'aula' => $horario['aula'] ?? 'Sin asignar', 
                 'hora_inicio' => substr($horario['hora_inicio'], 0, 5),
                 'hora_fin' => substr($horario['hora_fin'], 0, 5)
             ];
@@ -110,8 +107,7 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
             'updated_at' => time()
         ];
         
-        // 5. Enviar usando tu clase FirebaseConfig
-        // Ruta: horarios/periodo_X/carrera_Y/semestre_Z
+        
         $path = "horarios/periodo_{$periodo_id}/carrera_{$carrera_id}/semestre_{$semestre_id}";
         
         $result = $firebase->sendData($path, $datos_firebase);
@@ -120,18 +116,7 @@ function sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id) {
             $errorMsg = isset($result['error']) ? $result['error'] : "Error de conexión cURL";
             throw new Exception("Firebase rechazó los datos: " . $errorMsg);
         }
-        
-        // 6. Registro de log en BD (Opcional, si tienes la tabla 'sincronizacion_firebase')
-        /*
-        $referencia_id = $carrera_id . '-' . $semestre_id;
-        $sql_sync = "INSERT INTO sincronizacion_firebase 
-                     (periodo_id, tipo, referencia_id, estado, sincronizado_at) 
-                     VALUES (:p_id, 'horarios', :ref_id, 'sincronizado', NOW())
-                     ON DUPLICATE KEY UPDATE 
-                     estado = 'sincronizado', sincronizado_at = NOW()";
-        $stmt_sync = $conn->prepare($sql_sync);
-        $stmt_sync->execute([':p_id' => $periodo_id, ':ref_id' => $referencia_id]);
-        */
+      
             
         return [
             'success' => true,

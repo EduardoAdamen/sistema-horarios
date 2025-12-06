@@ -1,8 +1,4 @@
 <?php
-// =====================================================
-// views/docentes/index.php
-// Listado de docentes - DISEÑO PROFESIONAL MODERNO
-// =====================================================
 
 $page_title = 'Gestión de Docentes';
 ?>

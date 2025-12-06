@@ -1,10 +1,7 @@
 <?php
-// =====================================================
-// includes/auth.php
-// Sistema de autenticación con archivos secuenciales
-// =====================================================
 
-// Cargar logger para que logAccion() siempre exista
+// Sistema de autenticación con archivos secuenciales
+
 require_once __DIR__ . '/logger.php';
 
 // Asegurar sesión disponible
@@ -14,12 +11,11 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 class Auth {
     
-    /**
-     * Verifica si el archivo de usuarios existe, si no, lo crea con datos iniciales
-     */
+    // Verifica si el archivo de usuarios existe sino lo crea con datos iniciales
+     
     public static function initUsersFile() {
         if (!defined('USERS_FILE')) {
-            // Si no existe la constante, colocamos un valor por defecto relativo
+           
             define('USERS_FILE', __DIR__ . '/users.db'); 
         }
 
@@ -55,29 +51,16 @@ class Auth {
                     'email' => 'dep@instituto.edu.mx',
                     'activo' => true,
                     'created_at' => date('Y-m-d H:i:s')
-                ],
-                [
-                    'usuario' => 'D001',
-                    'password' => password_hash('docente123', PASSWORD_DEFAULT),
-                    'rol' => defined('ROLE_DOCENTE') ? ROLE_DOCENTE : 'DOCENTE',
-                    'nombre' => 'Juan',
-                    'apellidos' => 'Pérez García',
-                    'email' => 'juan.perez@instituto.edu.mx',
-                    'numero_empleado' => 'D001',
-                    'activo' => true,
-                    'created_at' => date('Y-m-d H:i:s')
                 ]
             ];
             
-            // Guardar serializado
+          
             file_put_contents(USERS_FILE, serialize($usuarios_iniciales));
             @chmod(USERS_FILE, 0600); 
         }
     }
     
-    /**
-     * Cargar todos los usuarios del archivo
-     */
+   
     public static function loadUsers() {
         self::initUsersFile();
         
@@ -91,16 +74,12 @@ class Auth {
         return is_array($users) ? $users : [];
     }
     
-    /**
-     * Guardar usuarios en el archivo
-     */
+   
     public static function saveUsers($users) {
         return file_put_contents(USERS_FILE, serialize($users)) !== false;
     }
     
-    /**
-     * Autenticar usuario
-     */
+
     public static function login($usuario, $password) {
         $users = self::loadUsers();
         
@@ -137,9 +116,7 @@ class Auth {
         return false;
     }
     
-    /**
-     * Cerrar sesión
-     */
+   
     public static function logout() {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             @session_start();
@@ -162,9 +139,7 @@ class Auth {
         return true;
     }
     
-    /**
-     * Verificar si el usuario está autenticado
-     */
+ 
     public static function isLoggedIn() {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             @session_start();
@@ -172,16 +147,12 @@ class Auth {
         return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
     }
     
-    /**
-     * Verificar si el usuario tiene un rol específico
-     */
+   
     public static function hasRole($rol) {
         return self::isLoggedIn() && (isset($_SESSION['rol']) && $_SESSION['rol'] === $rol);
     }
     
-    /**
-     * Verificar si el usuario tiene alguno de los roles especificados
-     */
+   
     public static function hasAnyRole($roles) {
         if (!self::isLoggedIn()) {
             return false;
@@ -190,9 +161,7 @@ class Auth {
         return in_array($_SESSION['rol'] ?? null, $roles, true);
     }
     
-    /**
-     * Obtener usuario actual
-     */
+    
     public static function getCurrentUser() {
         if (!self::isLoggedIn()) {
             return null;
@@ -201,9 +170,7 @@ class Auth {
         return $_SESSION['usuario'] ?? null;
     }
     
-    /**
-     * Crear nuevo usuario
-     */
+   
     public static function createUser($datos) {
         if (empty($datos['usuario']) || empty($datos['password'])) {
             return ['success' => false, 'message' => 'Faltan datos obligatorios'];
@@ -249,9 +216,7 @@ class Auth {
         return ['success' => false, 'message' => 'Error al guardar el usuario'];
     }
     
-    /**
-     * Actualizar usuario
-     */
+    
     public static function updateUser($usuario, $datos) {
         $users = self::loadUsers();
         $updated = false;
@@ -282,9 +247,7 @@ class Auth {
         return ['success' => false, 'message' => 'Error al actualizar el usuario'];
     }
     
-    /**
-     * Eliminar usuario (desactivar)
-     */
+
     public static function deleteUser($usuario) {
         $users = self::loadUsers();
         $deleted = false;
@@ -307,9 +270,7 @@ class Auth {
         return ['success' => false, 'message' => 'Error al desactivar el usuario'];
     }
     
-    /**
-     * Obtener usuario por nombre de usuario
-     */
+    
     public static function getUserByUsername($usuario) {
         $users = self::loadUsers();
         foreach ($users as $user) {

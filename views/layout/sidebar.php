@@ -1,11 +1,8 @@
 <?php
-// =====================================================
-// views/layout/sidebar.php
-// Sidebar ajustado a Roles Específicos - VERSIÓN CORREGIDA
-// =====================================================
+
 ?>
 <style>
-/* ... (Estilos CSS originales mantenidos) ... */
+
 :root {
   --sidebar-bg: #ffffff;
   --primary-blue: #2979FF;
