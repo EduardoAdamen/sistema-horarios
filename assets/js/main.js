@@ -195,9 +195,7 @@ async function ajaxPost(url, data) {
     }
 }
 
-/**
- * Realizar petición AJAX GET
- */
+
 async function ajaxGet(url) {
     try {
         const response = await fetch(url);

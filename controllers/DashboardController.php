@@ -1,4 +1,8 @@
 <?php
+// =====================================================
+// controllers/DashboardController.php
+// Lógica separada por Roles - CORREGIDO (Búsqueda Inteligente)
+// =====================================================
 
 class DashboardController {
     
@@ -13,15 +17,13 @@ class DashboardController {
         $db = new Database();
         $this->conn = $db->getConnection();
 
-        
+        // Validación de conexión crítica
         if ($this->conn === null) {
-          
-            die("Error crítico: No se pudo establecer conexión con la base de datos. Verifique las variables de entorno (MYSQLPASSWORD, etc) en Railway.");
+            die("Error crítico: No se pudo establecer conexión con la base de datos. Verifique las variables de entorno en Railway.");
         }
     }
     
     public function index() {
-        
         if (Auth::hasRole(ROLE_DOCENTE)) {
             $this->docenteDashboard();
         } else {
@@ -29,18 +31,14 @@ class DashboardController {
         }
     }
 
-   
     private function adminDashboard() {
-        
+        // Periodo activo
         $sql = "SELECT * FROM periodos_escolares WHERE activo = 1 LIMIT 1";
-        
-        
         $stmt = $this->conn->query($sql);
         $periodo_activo = $stmt ? $stmt->fetch() : null;
 
-        // Contar registros
+        // Contar registros de forma segura
         $stats = [];
-        
         try {
             $stats['materias'] = $this->conn->query("SELECT COUNT(*) FROM materias WHERE activo = 1")->fetchColumn();
             $stats['docentes'] = $this->conn->query("SELECT COUNT(*) FROM docentes WHERE activo = 1")->fetchColumn();
@@ -52,7 +50,6 @@ class DashboardController {
                 $stats['horarios_conciliados'] = $this->conn->query("SELECT COUNT(*) FROM horarios WHERE periodo_id = {$periodo_activo['id']} AND estado = 'conciliado'")->fetchColumn();
                 $stats['horarios_publicados'] = $this->conn->query("SELECT COUNT(*) FROM horarios WHERE periodo_id = {$periodo_activo['id']} AND estado = 'publicado'")->fetchColumn();
             } else {
-                // Valores por defecto si no hay periodo activo
                 $stats['grupos'] = 0;
                 $stats['horarios_borrador'] = 0;
                 $stats['horarios_conciliados'] = 0;
@@ -71,26 +68,33 @@ class DashboardController {
         $this->loadView('dashboard/index', $data);
     }
 
-   
+    /**
+     * Dashboard Personalizado para el Docente
+     * MEJORADO: Busca por usuario O por email para evitar errores de perfil no encontrado
+     */
     private function docenteDashboard() {
         $usuario = $_SESSION['usuario']; 
-        
-        $sql_docente = "SELECT * FROM docentes WHERE numero_empleado = :usuario LIMIT 1";
+        $email = $_SESSION['email'] ?? ''; // Auth.php guarda el email en sesión, lo usamos como respaldo
+
+        // 1. Obtener datos del Docente (Búsqueda doble: por numero_empleado O email)
+        $sql_docente = "SELECT * FROM docentes WHERE numero_empleado = :usuario OR email = :email LIMIT 1";
         $stmt = $this->conn->prepare($sql_docente);
-        $stmt->execute([':usuario' => $usuario]);
+        $stmt->execute([
+            ':usuario' => $usuario,
+            ':email' => $email
+        ]);
         $docente = $stmt->fetch();
 
         if (!$docente) {
-            $_SESSION['error'] = 'No se encontró su perfil de docente asociado.';
-           
+            $_SESSION['error'] = 'No se encontró su perfil de docente asociado. (Usuario: ' . htmlspecialchars($usuario) . ')';
             $this->loadView('dashboard/index', ['page_title' => 'Error de Perfil']); 
             return;
         }
 
-        
+        // Guardar ID real en sesión
         $_SESSION['docente_id'] = $docente['id'];
 
-       
+        // 2. Obtener Periodo Activo
         $sql_periodo = "SELECT * FROM periodos_escolares WHERE activo = 1 LIMIT 1";
         $stmt = $this->conn->query($sql_periodo);
         $periodo = $stmt ? $stmt->fetch() : null;
@@ -101,14 +105,13 @@ class DashboardController {
         if ($periodo) {
             $_SESSION['periodo_actual'] = $periodo['id'];
 
-            
+            // 3. Obtener Clases de HOY
             $dias_semana = [
                 'Monday' => 'lunes', 'Tuesday' => 'martes', 'Wednesday' => 'miercoles',
                 'Thursday' => 'jueves', 'Friday' => 'viernes', 'Saturday' => 'sabado', 'Sunday' => 'domingo'
             ];
             $dia_actual = $dias_semana[date('l')] ?? 'lunes';
 
-            
             $sql_clases = "SELECT 
                                 h.hora_inicio, h.hora_fin, 
                                 m.nombre as materia, m.clave as materia_clave,
@@ -132,7 +135,7 @@ class DashboardController {
             ]);
             $clases_hoy = $stmt->fetchAll();
 
-          
+            // 4. Total de grupos
             $sql_total = "SELECT COUNT(DISTINCT grupo_id) FROM horarios WHERE docente_id = :docente_id AND periodo_id = :periodo_id";
             $stmt = $this->conn->prepare($sql_total);
             $stmt->execute([':docente_id' => $docente['id'], ':periodo_id' => $periodo['id']]);
@@ -158,4 +161,3 @@ class DashboardController {
         require_once VIEWS_PATH . 'layout/footer.php';
     }
 }
-?>
