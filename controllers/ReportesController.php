@@ -452,6 +452,7 @@ class ReportesController {
         require_once VIEWS_PATH . 'layout/footer.php';
     }
 
+   
     public function miHorario() {
         if (!Auth::hasRole(ROLE_DOCENTE)) {
             $_SESSION['error'] = 'Esta sección es exclusiva para docentes.';
@@ -459,17 +460,32 @@ class ReportesController {
             exit;
         }
 
-        $usuario = $_SESSION['usuario']; 
-        $stmt = $this->conn->prepare("SELECT id FROM docentes WHERE numero_empleado = :usuario LIMIT 1");
-        $stmt->execute([':usuario' => $usuario]);
+        $usuario_login = $_SESSION['usuario']; 
+        
+        // 1. RECUPERACIÓN INTELIGENTE (Consultar Auth/Archivos)
+        $authUser = Auth::getUserByUsername($usuario_login);
+        
+        // Criterios de búsqueda
+        $numero_empleado_real = $authUser['numero_empleado'] ?? $usuario_login;
+        $email = $authUser['email'] ?? $_SESSION['email'] ?? '';
+
+        // 2. Buscar en MySQL usando OR para cubrir todos los casos
+        $sql = "SELECT id FROM docentes WHERE numero_empleado = :num OR numero_empleado = :user OR email = :email LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([
+            ':num' => $numero_empleado_real,
+            ':user' => $usuario_login,
+            ':email' => $email
+        ]);
         $docente = $stmt->fetch();
 
         if (!$docente) {
-            $_SESSION['error'] = 'No se encontró su registro de docente.';
+            $_SESSION['error'] = 'No se encontró su registro de docente. (Revise que el No. Empleado o Email coincida)';
             header('Location: index.php?c=dashboard');
             exit;
         }
 
+        // Obtener ID del periodo activo
         $stmt_p = $this->conn->query("SELECT id FROM periodos_escolares WHERE activo = 1 LIMIT 1");
         $periodo = $stmt_p->fetch();
 
@@ -479,9 +495,11 @@ class ReportesController {
             exit;
         }
 
+        // Asignar parámetros GET para que la función horarioDocente funcione
         $_GET['docente'] = $docente['id'];
         $_GET['periodo'] = $periodo['id'];
 
+        // Reutilizar la función existente
         $this->horarioDocente();
     }
 }
