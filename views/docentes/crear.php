@@ -1,28 +1,14 @@
-<?php
-
-$page_title = 'Nuevo Docente';
-?>
+<?php $page_title = 'Nuevo Docente'; ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
     :root {
-        --primary: #2563eb;
-        --primary-hover: #1d4ed8;
-        --muted: #64748b;
-        --text-main: #0f172a;
-        --bg: #ffffff;
-        --surface: #f8fafc;
-        --border: #e2e8f0;
-        --radius: 12px;
+        --primary: #2563eb; --primary-hover: #1d4ed8; --muted: #64748b;
+        --text-main: #0f172a; --bg: #ffffff; --surface: #f8fafc;
+        --border: #e2e8f0; --radius: 12px;
     }
-
-    .page-container {
-        font-family: "Open Sans", system-ui, Helvetica;
-        padding: 22px;
-        color: var(--text-main);
-    }
-
+    .page-container { font-family: "Open Sans", system-ui; padding: 22px; color: var(--text-main); }
     .breadcrumb-wrapper { margin-bottom: 16px; }
     .breadcrumb-clean {
         display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
@@ -33,38 +19,29 @@ $page_title = 'Nuevo Docente';
     .breadcrumb-clean .breadcrumb-item a:hover { background: rgba(37,99,235,0.07); color: #2563eb; }
     .breadcrumb-clean .breadcrumb-item + .breadcrumb-item::before { content: "›"; margin-right: 4px; color: #cbd5e1; }
     .breadcrumb-clean .active { font-weight: 700; color: #2563eb; }
-
     .page-title { font-size: 1.45rem; font-weight: 800; margin: 0 0 22px 0; }
-
-    .content-grid {
-        display: grid; grid-template-columns: 1fr 380px; gap: 22px; align-items: start;
-    }
+    .content-grid { display: grid; grid-template-columns: 1fr 380px; gap: 22px; align-items: start; }
     @media (max-width: 968px) { .content-grid { grid-template-columns: 1fr; } }
-
     .card-box {
         background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
         padding: 24px; margin-bottom: 22px; box-shadow: 0 1px 6px rgba(0,0,0,0.04);
     }
-
     .alert-info, .alert-success {
         padding: 14px 16px; border-radius: 10px; margin-bottom: 24px;
         display: flex; align-items: center; gap: 10px; font-size: 0.93rem;
     }
     .alert-info { background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; }
     .alert-success { background: #d1fae5; border: 1px solid #a7f3d0; color: #065f46; }
-
     .section-title {
         font-size: 1.1rem; font-weight: 700; color: var(--text-main);
         margin: 28px 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid var(--border);
     }
     .section-title:first-of-type { margin-top: 0; }
-
     .form-row {
         display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
     }
     .form-row.three-cols { grid-template-columns: 1fr 1fr 1fr; }
     .form-row.single { grid-template-columns: 1fr; }
-
     .form-group { margin-bottom: 20px; }
     .form-label {
         display: block; font-size: 0.90rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;
@@ -77,6 +54,33 @@ $page_title = 'Nuevo Docente';
         outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
     }
     .text-muted { font-size: 0.82rem; color: var(--muted); margin-top: 4px; display: block; }
+    
+    /* Estilos para selector de materias */
+    .materias-selector {
+        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+        padding: 16px; max-height: 400px; overflow-y: auto;
+    }
+    .materia-item {
+        padding: 10px 12px; background: white; border: 1px solid #e2e8f0;
+        border-radius: 8px; margin-bottom: 8px; cursor: pointer;
+        transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+    }
+    .materia-item:hover { border-color: var(--primary); background: #eff6ff; }
+    .materia-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+    .materia-info { flex: 1; }
+    .materia-clave { font-weight: 700; color: var(--primary); font-size: 0.9rem; }
+    .materia-nombre { font-size: 0.85rem; color: var(--text-main); margin-top: 2px; }
+    .materia-detalle { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+    .filtro-materias {
+        margin-bottom: 12px; display: flex; gap: 10px;
+    }
+    .filtro-materias select, .filtro-materias input {
+        flex: 1; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
+    }
+    .contador-materias {
+        text-align: center; padding: 8px; background: #dbeafe; border-radius: 6px;
+        font-weight: 600; color: #1e40af; font-size: 0.9rem; margin-bottom: 12px;
+    }
 
     .button-group {
         display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px;
@@ -91,7 +95,6 @@ $page_title = 'Nuevo Docente';
     .btn-secondary:hover { background: #e2e8f0; color: var(--text-main); transform: translateY(-2px); }
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 5px 14px rgba(37,99,235,0.22); }
     .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
-
     .info-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
     .info-card-header {
         padding: 12px 16px; font-weight: 700; font-size: 0.90rem; display: flex; align-items: center; gap: 8px;
@@ -102,7 +105,6 @@ $page_title = 'Nuevo Docente';
     .info-card-body p { font-size: 0.85rem; color: var(--muted); margin: 0 0 12px 0; line-height: 1.6; }
     .info-card-body ul { margin: 0; padding-left: 20px; }
     .info-card-body ul li { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; line-height: 1.5; }
-
     @media (max-width: 600px) {
         .form-row, .form-row.three-cols { grid-template-columns: 1fr; }
         .button-group { flex-direction: column-reverse; }
@@ -111,7 +113,6 @@ $page_title = 'Nuevo Docente';
 </style>
 
 <div class="page-container">
-
     <div class="breadcrumb-wrapper">
         <div class="breadcrumb-clean">
             <span class="breadcrumb-item"><a href="<?php echo APP_URL; ?>index.php">Inicio</a></span>
@@ -123,7 +124,6 @@ $page_title = 'Nuevo Docente';
     <h1 class="page-title">Nuevo Docente</h1>
 
     <div class="content-grid">
-        
         <div>
             <div class="card-box">
                 <form method="POST" action="<?php echo APP_URL; ?>index.php?c=docentes&a=crear" class="needs-validation" novalidate>
@@ -187,6 +187,49 @@ $page_title = 'Nuevo Docente';
                         </div>
                     </div>
 
+                    <h5 class="section-title"><i class="fas fa-book"></i> Materias que puede impartir</h5>
+                    
+                    <div class="contador-materias">
+                        <span id="contador-seleccionadas">0</span> materias seleccionadas
+                    </div>
+
+                    <div class="filtro-materias">
+                        <input type="text" id="buscar-materia" placeholder="🔍 Buscar materia..." onkeyup="filtrarMaterias()">
+                        <select id="filtro-carrera" onchange="filtrarMaterias()">
+                            <option value="">Todas las carreras</option>
+                            <?php
+                            $db = new Database();
+                            $carreras = $db->getConnection()->query("SELECT * FROM carreras WHERE activo=1 ORDER BY nombre")->fetchAll();
+                            foreach($carreras as $c) {
+                                echo "<option value='{$c['id']}'>{$c['nombre']}</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+
+                    <div class="materias-selector" id="materias-container">
+                        <?php if(!empty($materias)): ?>
+                            <?php foreach($materias as $mat): ?>
+                                <label class="materia-item" data-carrera="<?php echo $mat['carrera_id']; ?>" 
+                                       data-nombre="<?php echo strtolower($mat['nombre']); ?>"
+                                       data-clave="<?php echo strtolower($mat['clave']); ?>">
+                                    <input type="checkbox" name="materias[]" value="<?php echo $mat['id']; ?>" onchange="actualizarContador()">
+                                    <div class="materia-info">
+                                        <div class="materia-clave"><?php echo htmlspecialchars($mat['clave']); ?></div>
+                                        <div class="materia-nombre"><?php echo htmlspecialchars($mat['nombre']); ?></div>
+                                        <div class="materia-detalle">
+                                            <i class="fas fa-graduation-cap"></i> <?php echo htmlspecialchars($mat['carrera_nombre']); ?> - 
+                                            <i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($mat['semestre_nombre']); ?> - 
+                                            <i class="fas fa-clock"></i> <?php echo $mat['horas_semana']; ?>hrs
+                                        </div>
+                                    </div>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <p style="text-align:center; color:#64748b; padding:20px;">No hay materias disponibles</p>
+                        <?php endif; ?>
+                    </div>
+
                     <h5 class="section-title">Acceso al Sistema (Opcional)</h5>
                     
                     <div class="form-group">
@@ -236,6 +279,14 @@ $page_title = 'Nuevo Docente';
                     <span>Recomendaciones</span>
                 </div>
                 <div class="info-card-body">
+                    <h6>Asignación de Materias</h6>
+                    <p>El docente solo podrá impartir las materias que selecciones aquí. Esto permite:</p>
+                    <ul>
+                        <li>Control preciso de asignaciones</li>
+                        <li>Evitar errores en horarios</li>
+                        <li>Especialización docente</li>
+                    </ul>
+                    <hr>
                     <h6>¿Crear cuenta de usuario?</h6>
                     <p>Marcar esta opción si el docente necesita:</p>
                     <ul>
@@ -243,13 +294,9 @@ $page_title = 'Nuevo Docente';
                         <li>Recibir notificaciones</li>
                         <li>Acceder al sistema</li>
                     </ul>
-                    <hr>
-                    <h6>Número de Empleado</h6>
-                    <p>Úsalo como usuario de login para que sea fácil de recordar.</p>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 
@@ -273,15 +320,35 @@ function toggleCuentaFields() {
     const inputUser = document.getElementById('usuario_login');
     
     if (check.checked) {
-        // Mostrar y hacer obligatorios
         container.style.display = 'block';
         inputPass.setAttribute('required', 'required');
     } else {
-        // Ocultar, quitar required y limpiar
         container.style.display = 'none';
         inputPass.removeAttribute('required');
         inputPass.value = '';
         inputUser.value = '';
     }
+}
+
+function actualizarContador() {
+    const checkboxes = document.querySelectorAll('input[name="materias[]"]:checked');
+    document.getElementById('contador-seleccionadas').textContent = checkboxes.length;
+}
+
+function filtrarMaterias() {
+    const busqueda = document.getElementById('buscar-materia').value.toLowerCase();
+    const carreraFiltro = document.getElementById('filtro-carrera').value;
+    const items = document.querySelectorAll('.materia-item');
+    
+    items.forEach(item => {
+        const nombre = item.dataset.nombre;
+        const clave = item.dataset.clave;
+        const carrera = item.dataset.carrera;
+        
+        const coincideBusqueda = nombre.includes(busqueda) || clave.includes(busqueda);
+        const coincideCarrera = !carreraFiltro || carrera === carreraFiltro;
+        
+        item.style.display = (coincideBusqueda && coincideCarrera) ? 'flex' : 'none';
+    });
 }
 </script>
