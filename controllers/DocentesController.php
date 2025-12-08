@@ -1,20 +1,21 @@
 <?php
 
 require_once MODELS_PATH . 'Docente.php';
-
+require_once MODELS_PATH . 'DocenteMateria.php';
 
 class DocentesController {
     
     private $docente_model;
+    private $docente_materia_model;
     
     public function __construct() {
-        // Verifica permisos y existencia de Auth
         if (!class_exists('Auth') || !Auth::hasAnyRole([ROLE_SUBDIRECTOR, ROLE_JEFE_DEPTO])) {
             $_SESSION['error'] = 'Acceso no autorizado';
             header('Location: index.php');
             exit;
         }
         $this->docente_model = new Docente();
+        $this->docente_materia_model = new DocenteMateria();
     }
     
     public function index() {
@@ -25,12 +26,13 @@ class DocentesController {
     public function crear() {
         
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-            $this->loadView('docentes/crear');
+            // Obtener materias disponibles para asignación
+            $materias = $this->docente_materia_model->getMateriasDisponibles();
+            $this->loadView('docentes/crear', ['materias' => $materias]);
             return;
         }
 
-
-        // 1. Recolección de datos del Docente
+        // POST - Crear docente
         $datos = [
             'numero_empleado' => strtoupper(trim($_POST['numero_empleado'] ?? '')),
             'nombre' => trim($_POST['nombre'] ?? ''),
@@ -42,65 +44,61 @@ class DocentesController {
             'horas_max_semana' => (int)($_POST['horas_max_semana'] ?? 40)
         ];
 
-        // 2. Validaciones Básicas del Docente
+        // Validaciones
         if (empty($datos['numero_empleado']) || empty($datos['nombre']) || empty($datos['apellido_paterno']) || empty($datos['email'])) {
-            $_SESSION['error'] = 'Todos los campos obligatorios del docente son requeridos';
+            $_SESSION['error'] = 'Todos los campos obligatorios son requeridos';
             header('Location: index.php?c=docentes&a=crear');
             exit;
         }
 
-        // 3. Verifica si el empleado ya existe en BD
         if ($this->docente_model->getByNumeroEmpleado($datos['numero_empleado'])) {
-            $_SESSION['error'] = "El número de empleado {$datos['numero_empleado']} ya existe en la base de datos.";
+            $_SESSION['error'] = "El número de empleado {$datos['numero_empleado']} ya existe";
             header('Location: index.php?c=docentes&a=crear');
             exit;
         }
 
-   
-        // 4. VALIDACIÓN DE CUENTA DE USUARIO (Archivos secuenciales)
-       
+        // Validación de cuenta de usuario
         $crear_cuenta = isset($_POST['crear_cuenta']);
         $auth_user = '';
         $auth_pass = '';
 
         if ($crear_cuenta) {
-          
             $input_user = trim($_POST['usuario_login'] ?? '');
             $auth_user = !empty($input_user) ? $input_user : $datos['numero_empleado'];
-            
             $auth_pass = $_POST['password'] ?? '';
 
-            
             if (empty($auth_pass) || strlen($auth_pass) < 6) {
-                $_SESSION['error'] = 'Para crear la cuenta de usuario, la contraseña es obligatoria (mínimo 6 caracteres).';
+                $_SESSION['error'] = 'Para crear cuenta, la contraseña es obligatoria (mínimo 6 caracteres)';
                 header('Location: index.php?c=docentes&a=crear');
-                exit; 
+                exit;
             }
 
-            // Verifica si el usuario YA existe en el sistema de archivos
             if (Auth::getUserByUsername($auth_user)) {
-                $_SESSION['error'] = "El usuario de sistema '{$auth_user}' ya existe. Por favor use otro nombre de usuario.";
+                $_SESSION['error'] = "El usuario '{$auth_user}' ya existe";
                 header('Location: index.php?c=docentes&a=crear');
-                exit; 
+                exit;
             }
         }
 
-        
-        // 5. CREACIÓN EN BASE DE DATOS 
-       
+        // Crear docente en BD
         $result = $this->docente_model->create($datos);
         
         if (!$result['success']) {
-            $_SESSION['error'] = 'Error crítico: No se pudo registrar al docente en la base de datos.';
+            $_SESSION['error'] = 'Error al registrar docente';
             header('Location: index.php?c=docentes&a=crear');
             exit;
         }
 
-        
-        // 6. CREACIÓN DE USUARIO EN ARCHIVOS (AUTH)
-        
+        $docente_id = $result['id'];
+
+        // Asignar materias al docente
+        $materias_seleccionadas = $_POST['materias'] ?? [];
+        if (!empty($materias_seleccionadas)) {
+            $this->docente_materia_model->asignarMaterias($docente_id, $materias_seleccionadas);
+        }
+
+        // Crear cuenta de usuario si se solicitó
         $mensaje_login = "";
-        
         if ($crear_cuenta) {
             $rol_docente = defined('ROLE_DOCENTE') ? ROLE_DOCENTE : 'docente';
             
@@ -115,10 +113,9 @@ class DocentesController {
             ]);
 
             if ($createAuth['success']) {
-                $mensaje_login = " y cuenta de acceso creada (Usuario: $auth_user).";
+                $mensaje_login = " y cuenta de acceso creada (Usuario: $auth_user)";
             } else {
-               
-                $_SESSION['warning'] = "Docente registrado, pero falló la creación de cuenta: " . $createAuth['message'];
+                $_SESSION['warning'] = "Docente registrado, pero falló creación de cuenta: " . $createAuth['message'];
                 header('Location: index.php?c=docentes');
                 exit;
             }
@@ -129,7 +126,6 @@ class DocentesController {
         exit;
     }
     
-
     public function editar() {
         $id = $_GET['id'] ?? null;
         if (!$id) {
@@ -145,19 +141,28 @@ class DocentesController {
             exit;
         }
 
-        
         $usuario_asociado = Auth::getUserByUsername($docente['numero_empleado']) 
                           ?? Auth::getUserByUsername($docente['email']) 
                           ?? null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            // Obtener materias asignadas y disponibles
+            $materias_asignadas = $this->docente_materia_model->getMateriasPorDocente($id);
+            $materias_disponibles = $this->docente_materia_model->getMateriasDisponibles();
+            
+            // IDs de materias asignadas
+            $materias_ids = array_column($materias_asignadas, 'id');
+            
             $this->loadView('docentes/editar', [
                 'docente' => $docente,
-                'usuario_asociado' => $usuario_asociado
+                'usuario_asociado' => $usuario_asociado,
+                'materias_disponibles' => $materias_disponibles,
+                'materias_asignadas_ids' => $materias_ids
             ]);
             return;
         }
 
+        // POST - Actualizar
         $datos = [
             'numero_empleado' => strtoupper(trim($_POST['numero_empleado'] ?? '')),
             'nombre' => trim($_POST['nombre'] ?? ''),
@@ -169,15 +174,18 @@ class DocentesController {
             'horas_max_semana' => (int)($_POST['horas_max_semana'] ?? 40)
         ];
 
-        
         $otro = $this->docente_model->getByNumeroEmpleado($datos['numero_empleado']);
         if ($otro && $otro['id'] != $id) {
-            $_SESSION['error'] = "El número de empleado ya está en uso por otro docente";
+            $_SESSION['error'] = "El número de empleado ya está en uso";
             header("Location: index.php?c=docentes&a=editar&id=$id");
             exit;
         }
 
         $this->docente_model->update($id, $datos);
+
+        // Actualizar materias asignadas
+        $materias_seleccionadas = $_POST['materias'] ?? [];
+        $this->docente_materia_model->asignarMaterias($id, $materias_seleccionadas);
 
         // Actualizar/Crear Cuenta Auth
         $auth_user = trim($_POST['usuario_login'] ?? $datos['numero_empleado']);
@@ -185,7 +193,6 @@ class DocentesController {
 
         if (isset($_POST['modificar_cuenta']) || isset($_POST['crear_cuenta'])) {
             if ($usuario_asociado) {
-                // Actualizar existente
                 Auth::updateUser($usuario_asociado['usuario'], [
                     'nombre' => $datos['nombre'],
                     'apellidos' => $datos['apellido_paterno'] . ' ' . $datos['apellido_materno'],
@@ -193,7 +200,6 @@ class DocentesController {
                     'password' => !empty($auth_pass) ? $auth_pass : null
                 ]);
             } else if (!empty($auth_pass)) {
-                // Crear nueva si no existía y puso password
                 Auth::createUser([
                     'usuario' => $auth_user,
                     'password' => $auth_pass,

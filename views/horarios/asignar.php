@@ -176,6 +176,12 @@ if (!empty($horarios_existentes)) {
         box-shadow: 0 0 0 3px rgba(37,99,235,0.1); 
     }
     
+    .form-control:disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+    
     /* ==================== AULA DISPLAY ==================== */
     .aula-display {
         background: #f0f9ff; 
@@ -192,6 +198,42 @@ if (!empty($horarios_existentes)) {
         white-space: nowrap; 
         text-overflow: ellipsis;
         transition: all 0.3s;
+    }
+    
+    .info-materia {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 12px;
+        margin-top: 12px;
+        display: none;
+    }
+    
+    .info-materia.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .info-materia-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 1px solid #dbeafe;
+    }
+    
+    .info-materia-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-materia-label {
+        font-weight: 600;
+        color: #1e40af;
+        font-size: 0.85rem;
+    }
+    
+    .info-materia-value {
+        color: #475569;
+        font-size: 0.85rem;
     }
     
     /* ==================== TABLA HORARIO ==================== */
@@ -626,9 +668,8 @@ if (!empty($horarios_existentes)) {
         to { transform: rotate(360deg); }
     }
     
-    @keyframes fadeIn { 
-        from { opacity: 0; transform: translateY(5px); } 
-        to { opacity: 1; transform: translateY(0); } 
+    @keyframes fadeOut { 
+        to { opacity: 0; } 
     }
 </style>
 
@@ -659,7 +700,7 @@ if (!empty($horarios_existentes)) {
     <div id="toast-container"></div>
 
     <div class="card-box">
-        <div class="card-header"><i class="fas fa-plus-circle"></i> Agregar Bloque</div>
+        <div class="card-header"><i class="fas fa-plus-circle"></i> Agregar Bloque de Horario</div>
         
         <form id="form-agregar-horario">
             <input type="hidden" name="periodo_id" value="<?php echo $periodo_id; ?>">
@@ -669,41 +710,38 @@ if (!empty($horarios_existentes)) {
             
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Grupo *</label>
-                    <select class="form-control" name="grupo_id" id="grupo_id" required onchange="cargarInfoMateria()">
-                        <option value="">Seleccione...</option>
+                    <label>Grupo - Materia *</label>
+                    <select class="form-control" name="grupo_id" id="grupo_id" required onchange="cargarInfoGrupo()">
+                        <option value="">Seleccione un grupo...</option>
                         <?php foreach ($grupos as $grupo): ?>
                             <option value="<?php echo $grupo['id']; ?>" 
                                     data-materia="<?php echo $grupo['materia_id']; ?>"
                                     data-clave="<?php echo $grupo['materia_clave']; ?>"
+                                    data-nombre="<?php echo htmlspecialchars($grupo['materia_nombre']); ?>"
+                                    data-creditos="<?php echo $grupo['creditos'] ?? 0; ?>"
                                     data-aula="<?php echo !empty($grupo['aula_asignada']) ? htmlspecialchars($grupo['aula_asignada']) : ''; ?>">
-                                <?php echo $grupo['clave']; ?> - <?php echo $grupo['materia_nombre']; ?>
+                                <?php echo $grupo['clave']; ?> - <?php echo htmlspecialchars($grupo['materia_nombre']); ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Aula Asignada (Solo lectura)</label>
+                    <label>Aula Asignada</label>
                     <div id="info-aula-asignada" class="aula-display">
-                        <span style="color: #94a3b8;">Seleccione un grupo...</span>
+                        <span style="color: #94a3b8;">Seleccione un grupo primero...</span>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Docente *</label>
-                    <select class="form-control" name="docente_id" required>
-                        <option value="">Seleccione...</option>
-                        <?php foreach ($docentes as $d): ?>
-                            <option value="<?php echo $d['id']; ?>">
-                                <?php echo $d['apellido_paterno'] . ' ' . $d['nombre']; ?>
-                            </option>
-                        <?php endforeach; ?>
+                    <label>Docente Autorizado *</label>
+                    <select class="form-control" name="docente_id" id="docente_id" required disabled>
+                        <option value="">Primero seleccione un grupo...</option>
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label>Día *</label>
+                    <label>Día de inicio *</label>
                     <select class="form-control" name="dia" required>
                         <option value="lunes">Lunes</option>
                         <option value="martes">Martes</option>
@@ -714,7 +752,7 @@ if (!empty($horarios_existentes)) {
                 </div>
 
                 <div class="form-group">
-                    <label>Inicio *</label>
+                    <label>Hora de inicio *</label>
                     <select class="form-control" name="hora_inicio" required>
                         <?php foreach ($horas_dia as $h): ?>
                             <option value="<?php echo $h; ?>:00"><?php echo $h; ?></option>
@@ -723,7 +761,7 @@ if (!empty($horarios_existentes)) {
                 </div>
 
                 <div class="form-group">
-                    <label>Fin *</label>
+                    <label>Hora de fin *</label>
                     <select class="form-control" name="hora_fin" required>
                         <?php foreach ($horas_dia as $h): if($h > '07:00'): ?>
                             <option value="<?php echo $h; ?>:00"><?php echo $h; ?></option>
@@ -732,9 +770,33 @@ if (!empty($horarios_existentes)) {
                 </div>
             </div>
             
+            <!-- Info adicional de la materia seleccionada -->
+            <div id="info-materia" class="info-materia">
+                <div class="info-materia-item">
+                    <span class="info-materia-label">
+                        <i class="fas fa-book"></i> Materia:
+                    </span>
+                    <span class="info-materia-value" id="info-nombre-materia">-</span>
+                </div>
+                <div class="info-materia-item">
+                    <span class="info-materia-label">
+                        <i class="fas fa-award"></i> Créditos:
+                    </span>
+                    <span class="info-materia-value" id="info-creditos">-</span>
+                </div>
+                <div class="info-materia-item">
+                    <span class="info-materia-label">
+                        <i class="fas fa-info-circle"></i> Distribución:
+                    </span>
+                    <span class="info-materia-value">
+                        Los bloques se distribuirán automáticamente en días consecutivos respetando el límite de 2 horas continuas
+                    </span>
+                </div>
+            </div>
+            
             <div style="margin-top: 16px; text-align: right;">
                 <button type="submit" id="btn-submit" class="btn btn-primary" disabled>
-                    <i class="fas fa-save"></i> Guardar Bloque
+                    <i class="fas fa-save"></i> Crear Bloques de Horario
                 </button>
             </div>
         </form>
@@ -907,42 +969,95 @@ const PERIODO_ID = <?php echo $periodo_id; ?>;
 const CARRERA_ID = <?php echo $carrera_id; ?>;
 const SEMESTRE_ID = <?php echo $semestre_id; ?>;
 let grupoSeleccionado = null;
+let materiaSeleccionada = null;
 
-// Control del formulario y selección de grupo
-function cargarInfoMateria() {
+// =====================================================
+// CARGAR INFORMACIÓN DEL GRUPO Y DOCENTES AUTORIZADOS
+// =====================================================
+function cargarInfoGrupo() {
     const grupoSelect = document.getElementById('grupo_id');
     const selectedOption = grupoSelect.options[grupoSelect.selectedIndex];
+    const docenteSelect = document.getElementById('docente_id');
     const infoAula = document.getElementById('info-aula-asignada');
     const btnSubmit = document.getElementById('btn-submit');
+    const infoMateriaDiv = document.getElementById('info-materia');
     
-    if (selectedOption.value) {
-        document.getElementById('materia_id').value = selectedOption.dataset.materia;
-        grupoSeleccionado = selectedOption.value;
-        
-        const aulaNombre = selectedOption.dataset.aula;
-        
-        if (aulaNombre && aulaNombre !== '') {
-            infoAula.innerHTML = `<i class="fas fa-door-open"></i> ${aulaNombre}`;
-            infoAula.style.color = '#0369a1';
-            infoAula.style.backgroundColor = '#f0f9ff';
-            infoAula.style.borderColor = '#bae6fd';
-            btnSubmit.disabled = false; 
-        } else {
-            infoAula.innerHTML = `<i class="fas fa-exclamation-triangle"></i> SIN AULA (DEP)`;
-            infoAula.style.color = '#991b1b';
-            infoAula.style.backgroundColor = '#fee2e2';
-            infoAula.style.borderColor = '#fca5a5';
-            btnSubmit.disabled = true;
-            mostrarToast('warning', 'Sin Aula Asignada', 'El grupo seleccionado no tiene aula asignada por la DEP. Imposible asignar horario.');
-        }
-    } else {
+    // Limpiar select de docentes
+    docenteSelect.innerHTML = '<option value="">Cargando docentes...</option>';
+    docenteSelect.disabled = true;
+    btnSubmit.disabled = true;
+    
+    if (!selectedOption.value) {
         grupoSeleccionado = null;
-        infoAula.innerHTML = '<span style="color: #94a3b8;">Seleccione un grupo...</span>';
-        btnSubmit.disabled = true;
+        materiaSeleccionada = null;
+        infoAula.innerHTML = '<span style="color: #94a3b8;">Seleccione un grupo primero...</span>';
+        docenteSelect.innerHTML = '<option value="">Primero seleccione un grupo...</option>';
+        infoMateriaDiv.classList.remove('show');
+        return;
     }
+    
+    // Guardar datos del grupo y materia
+    grupoSeleccionado = selectedOption.value;
+    materiaSeleccionada = selectedOption.dataset.materia;
+    document.getElementById('materia_id').value = materiaSeleccionada;
+    
+    // Mostrar información de la materia
+    document.getElementById('info-nombre-materia').textContent = selectedOption.dataset.nombre;
+    document.getElementById('info-creditos').textContent = selectedOption.dataset.creditos + ' créditos';
+    infoMateriaDiv.classList.add('show');
+    
+    // Mostrar aula asignada
+    const aulaNombre = selectedOption.dataset.aula;
+    
+    if (aulaNombre && aulaNombre !== '') {
+        infoAula.innerHTML = `<i class="fas fa-door-open"></i> ${aulaNombre}`;
+        infoAula.style.color = '#0369a1';
+        infoAula.style.backgroundColor = '#f0f9ff';
+        infoAula.style.borderColor = '#bae6fd';
+    } else {
+        infoAula.innerHTML = `<i class="fas fa-exclamation-triangle"></i> SIN AULA ASIGNADA`;
+        infoAula.style.color = '#991b1b';
+        infoAula.style.backgroundColor = '#fee2e2';
+        infoAula.style.borderColor = '#fca5a5';
+        mostrarToast('warning', 'Sin Aula', 'Este grupo no tiene aula asignada. No se podrá crear el horario hasta que se asigne un aula.');
+        return;
+    }
+    
+    // Cargar docentes autorizados para esta materia mediante AJAX
+    fetch(APP_URL + 'index.php?c=horarios&a=obtenerDocentesPorMateria&materia_id=' + materiaSeleccionada)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.docentes && data.docentes.length > 0) {
+                docenteSelect.innerHTML = '<option value="">Seleccione un docente...</option>';
+                
+                data.docentes.forEach(docente => {
+                    const option = document.createElement('option');
+                    option.value = docente.id;
+                    option.textContent = `${docente.apellido_paterno} ${docente.nombre}`;
+                    docenteSelect.appendChild(option);
+                });
+                
+                docenteSelect.disabled = false;
+                btnSubmit.disabled = false;
+                
+                mostrarToast('success', 'Docentes Cargados', 
+                    `Se encontraron ${data.docentes.length} docente(s) autorizado(s) para impartir esta materia.`);
+            } else {
+                docenteSelect.innerHTML = '<option value="">No hay docentes autorizados</option>';
+                mostrarToast('warning', 'Sin Docentes', 
+                    'No hay docentes autorizados para impartir esta materia. Configure las materias del docente primero.');
+            }
+        })
+        .catch(err => {
+            console.error('Error al cargar docentes:', err);
+            docenteSelect.innerHTML = '<option value="">Error al cargar docentes</option>';
+            mostrarToast('danger', 'Error', 'No se pudieron cargar los docentes autorizados.');
+        });
 }
 
-// Función para renderizar bloques
+// =====================================================
+// RENDERIZAR BLOQUES EN LA TABLA
+// =====================================================
 function renderizarBloque(h) {
     let dia = h.dia.toLowerCase().trim(); 
     let horaClean = h.hora_inicio.substring(0, 5).replace(':', ''); 
@@ -951,39 +1066,47 @@ function renderizarBloque(h) {
     const celda = document.getElementById(celdaId);
 
     if (celda) {
-        celda.innerHTML = `
-            <div class="bloque-horario estado-${h.estado}" data-id="${h.id}">
-                <div style="font-weight:700; color:#2563eb; line-height: 1.2; margin-bottom: 4px;">
-                    ${h.materia_clave}
-                    <div style="font-size:0.85em; color:#1e293b; font-weight:600;">
-                        ${h.materia_nombre}
-                    </div>
+        const bloqueDiv = document.createElement('div');
+        bloqueDiv.className = `bloque-horario estado-${h.estado}`;
+        bloqueDiv.dataset.id = h.id;
+        bloqueDiv.innerHTML = `
+            <div style="font-weight:700; color:#2563eb; line-height: 1.2; margin-bottom: 4px;">
+                ${h.materia_clave}
+                <div style="font-size:0.85em; color:#1e293b; font-weight:600;">
+                    ${h.materia_nombre}
                 </div>
-                <div style="font-size:0.75rem; color:#64748b;">
-                    <i class="fas fa-user"></i> ${h.docente_nombre}<br>
-                    <i class="fas fa-door-open"></i> ${h.aula}
-                </div>
-                <div style="font-size:0.75rem; font-weight:700; margin-top:4px; border-top:1px solid #eee; padding-top:4px;">
-                    ${h.hora_inicio.substring(0,5)} - ${h.hora_fin.substring(0,5)}
-                </div>
-                <button class="btn-danger-sm" onclick="mostrarModalEliminar(${h.id})">Eliminar</button>
             </div>
+            <div style="font-size:0.75rem; color:#64748b;">
+                <i class="fas fa-user"></i> ${h.docente_nombre}<br>
+                <i class="fas fa-door-open"></i> ${h.aula}
+            </div>
+            <div style="font-size:0.75rem; font-weight:700; margin-top:4px; border-top:1px solid #eee; padding-top:4px;">
+                ${h.hora_inicio.substring(0,5)} - ${h.hora_fin.substring(0,5)}
+            </div>
+            <button class="btn-danger-sm" onclick="mostrarModalEliminar(${h.id})">Eliminar</button>
         `;
+        celda.appendChild(bloqueDiv);
     } else {
         console.warn("No se encontró celda para:", celdaId);
     }
 }
 
-// Guardar bloque
+// =====================================================
+// GUARDAR BLOQUES DE HORARIO
+// =====================================================
 document.getElementById('form-agregar-horario').addEventListener('submit', function(e) {
     e.preventDefault();
-    if (!grupoSeleccionado) return;
+    
+    if (!grupoSeleccionado) {
+        mostrarToast('warning', 'Grupo Requerido', 'Seleccione un grupo antes de continuar.');
+        return;
+    }
 
     const btn = document.getElementById('btn-submit');
     const originalHTML = btn.innerHTML;
     btn.disabled = true;
     btn.classList.add('btn-loading');
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando bloques...';
 
     fetch(APP_URL + 'index.php?c=horarios&a=guardar', {
         method: 'POST',
@@ -992,25 +1115,45 @@ document.getElementById('form-agregar-horario').addEventListener('submit', funct
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            mostrarToast('success', '¡Éxito!', 'Bloque de horario agregado correctamente');
+            const bloquesCreados = data.bloques_creados || 0;
+            const bloquesEsperados = data.bloques_esperados || 0;
             
-            if(data.horario) {
-                renderizarBloque(data.horario);
-                this.reset();
-                document.getElementById('info-aula-asignada').innerHTML = '<span style="color: #94a3b8;">Seleccione un grupo...</span>';
-                grupoSeleccionado = null;
+            let mensaje = `Se crearon ${bloquesCreados} bloque(s) de horario exitosamente.`;
+            
+            if (bloquesCreados < bloquesEsperados) {
+                mensaje += ` (Se esperaban ${bloquesEsperados} bloques, pero algunos días tenían conflictos)`;
+                mostrarToast('warning', 'Bloques Creados Parcialmente', mensaje);
+            } else {
+                mostrarToast('success', '¡Bloques Creados!', mensaje);
+            }
+            
+            // Renderizar los bloques creados
+            if (data.horarios && Array.isArray(data.horarios)) {
+                data.horarios.forEach(horario => {
+                    renderizarBloque(horario);
+                });
             } else {
                 setTimeout(() => location.reload(), 1500);
             }
+            
+            // Limpiar formulario
+            this.reset();
+            document.getElementById('info-aula-asignada').innerHTML = '<span style="color: #94a3b8;">Seleccione un grupo primero...</span>';
+            document.getElementById('docente_id').innerHTML = '<option value="">Primero seleccione un grupo...</option>';
+            document.getElementById('docente_id').disabled = true;
+            document.getElementById('info-materia').classList.remove('show');
+            grupoSeleccionado = null;
+            materiaSeleccionada = null;
         } else {
-            mostrarToast('danger', 'Error', data.message || 'No se pudo agregar el bloque');
+            mostrarToast('danger', 'Error', data.message || 'No se pudieron crear los bloques de horario');
         }
+        
         btn.disabled = false;
         btn.classList.remove('btn-loading');
         btn.innerHTML = originalHTML;
     })
     .catch(err => {
-        console.error(err);
+        console.error('Error:', err);
         mostrarToast('danger', 'Error de Conexión', 'No se pudo conectar con el servidor');
         btn.disabled = false;
         btn.classList.remove('btn-loading');
@@ -1018,24 +1161,25 @@ document.getElementById('form-agregar-horario').addEventListener('submit', funct
     });
 });
 
-// Modal de eliminación
+// =====================================================
+// ELIMINAR BLOQUE
+// =====================================================
 function mostrarModalEliminar(id) {
     mostrarModal({
         tipo: 'danger',
         titulo: '¿Eliminar Bloque?',
-        mensaje: 'Esta acción no se puede deshacer. El bloque será eliminado permanentemente.',
+        mensaje: 'Esta acción no se puede deshacer. El bloque será eliminado permanentemente del horario.',
         textoConfirmar: 'Eliminar',
         textoCancelar: 'Cancelar',
         onConfirm: () => eliminarBloque(id)
     });
 }
 
-// Eliminar bloque
 function eliminarBloque(id) {
     fetch(APP_URL + 'index.php?c=horarios&a=eliminar', {
         method: 'POST',
         headers: {'Content-Type':'application/x-www-form-urlencoded'},
-        body: 'id='+id
+        body: 'id=' + id
     })
     .then(res => res.json())
     .then(data => {
@@ -1047,32 +1191,32 @@ function eliminarBloque(id) {
         }
     })
     .catch(err => {
-        console.error(err);
+        console.error('Error:', err);
         mostrarToast('danger', 'Error de Conexión', 'No se pudo conectar con el servidor');
     });
 }
 
-// Modal de conciliación
+// =====================================================
+// CONCILIAR HORARIOS
+// =====================================================
 function mostrarModalConciliar() {
     mostrarModal({
         tipo: 'warning',
         titulo: '¿Conciliar Horarios?',
-        mensaje: 'Esta acción sincronizará los horarios con Firebase y los marcará como conciliados.',
+        mensaje: 'Esta acción sincronizará todos los horarios con Firebase y los marcará como conciliados. Los estudiantes podrán verlos en la app móvil.',
         textoConfirmar: 'Conciliar y Sincronizar',
         textoCancelar: 'Cancelar',
         onConfirm: () => conciliarHorarios()
     });
 }
 
-// Conciliar horarios
 function conciliarHorarios() {
     const formData = new FormData();
     formData.append('periodo_id', PERIODO_ID);
     formData.append('carrera_id', CARRERA_ID);
     formData.append('semestre_id', SEMESTRE_ID);
     
-    // Mostrar toast de "procesando"
-    mostrarToast('info', 'Procesando...', 'Sincronizando horarios con Firebase...');
+    mostrarToast('info', 'Procesando...', 'Sincronizando horarios con Firebase, por favor espere...');
     
     fetch(APP_URL + 'index.php?c=horarios&a=conciliar', {
         method: 'POST',
@@ -1081,26 +1225,18 @@ function conciliarHorarios() {
     .then(res => res.json())
     .then(data => {
         if(data.success) {
-            mostrarToast('success', '¡Sincronización Exitosa!', data.message || 'Los horarios han sido conciliados y sincronizados correctamente');
+            mostrarToast('success', '¡Sincronización Exitosa!', 
+                data.message || 'Los horarios han sido conciliados y sincronizados correctamente con Firebase');
             setTimeout(() => location.reload(), 2000);
         } else {
-            mostrarToast('danger', 'Error de Sincronización', data.message || 'No se pudieron conciliar los horarios');
+            mostrarToast('danger', 'Error de Sincronización', 
+                data.message || 'No se pudieron conciliar los horarios');
         }
     })
     .catch(err => {
-        console.error(err);
-        mostrarToast('danger', 'Error de Conexión', 'No se pudo conectar con el servidor para sincronizar');
+        console.error('Error:', err);
+        mostrarToast('danger', 'Error de Conexión', 
+            'No se pudo conectar con el servidor para realizar la sincronización');
     });
 }
-
-// Estilo de animación fadeOut para cerrar modales
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes fadeOut {
-        to {
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 </script>

@@ -2,15 +2,15 @@
 
 require_once MODELS_PATH . 'Horario.php';
 require_once MODELS_PATH . 'Materia.php';
-require_once MODELS_PATH . 'Grupo.php'; 
-
-
-require_once __DIR__ . '/../includes/firebase-sync.php'; 
+require_once MODELS_PATH . 'Grupo.php';
+require_once MODELS_PATH . 'DocenteMateria.php';
+require_once __DIR__ . '/../includes/firebase-sync.php';
 
 class HorariosController {
     
     private $horario_model;
     private $materia_model;
+    private $docente_materia_model;
     
     public function __construct() {
         if (!Auth::isLoggedIn()) {
@@ -19,6 +19,7 @@ class HorariosController {
         }
         $this->horario_model = new Horario();
         $this->materia_model = new Materia();
+        $this->docente_materia_model = new DocenteMateria();
     }
     
     public function index() {
@@ -49,7 +50,6 @@ class HorariosController {
 
         $db = new Database(); $conn = $db->getConnection();
         
-        
         $sql = "SELECT p.nombre as p_nombre, c.nombre as c_nombre, s.nombre as s_nombre 
                 FROM periodos_escolares p, carreras c, semestres s 
                 WHERE p.id=:p AND c.id=:c AND s.id=:s";
@@ -57,124 +57,230 @@ class HorariosController {
         $stmt->execute([':p'=>$periodo_id, ':c'=>$carrera_id, ':s'=>$semestre_id]);
         $contexto = $stmt->fetch();
 
-        // Obtener Grupos 
         $grupoModel = new Grupo();
         $grupos = $grupoModel->getAll($periodo_id, $carrera_id, $semestre_id);
         
-        $docentes = $conn->query("SELECT * FROM docentes WHERE activo = 1 ORDER BY apellido_paterno")->fetchAll();
-       
-        $aulas = $conn->query("SELECT * FROM aulas WHERE activo = 1")->fetchAll(); 
+        // Ya NO cargamos todos los docentes aquí, se cargan por AJAX según materia
+        $docentes = []; // Array vacío, se llenará dinámicamente
+        $aulas = $conn->query("SELECT * FROM aulas WHERE activo = 1")->fetchAll();
         $horarios_existentes = $this->horario_model->getHorarios($periodo_id, $carrera_id, $semestre_id);
 
-        $data = compact('contexto', 'periodo_id', 'carrera_id', 'semestre_id', 'grupos', 'docentes', 'aulas', 'horarios_existentes');
+        $data = compact('contexto', 'periodo_id', 'carrera_id', 'semestre_id', 'grupos', 'aulas', 'horarios_existentes');
         $this->loadView('horarios/asignar', $data);
     }
     
-   
+    /**
+     * NUEVO: Endpoint AJAX para obtener docentes según materia
+     */
+    public function obtenerDocentesPorMateria() {
+        header('Content-Type: application/json');
+        
+        $materia_id = $_GET['materia_id'] ?? null;
+        
+        if (!$materia_id) {
+            echo json_encode(['success' => false, 'message' => 'Materia no especificada']);
+            exit;
+        }
+        
+        $docentes = $this->docente_materia_model->getDocentesPorMateria($materia_id);
+        echo json_encode(['success' => true, 'docentes' => $docentes]);
+        exit;
+    }
+    
+    /**
+     * Guardar horario con distribución automática
+     */
     public function guardar() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método no permitido']); exit;
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']); 
+            exit;
         }
         
         $grupo_id = $_POST['grupo_id'] ?? null;
+        $docente_id = $_POST['docente_id'] ?? null;
+        $dia_inicio = $_POST['dia'] ?? null;
+        $hora_inicio = $_POST['hora_inicio'] ?? null;
+        $hora_fin = $_POST['hora_fin'] ?? null;
         
-        if (!$grupo_id) {
-            echo json_encode(['success' => false, 'message' => 'Grupo no especificado']); exit;
-        }
-
-        // Consultar el Grupo para obtener su Aula
-        $grupoModel = new Grupo();
-        $grupoInfo = $grupoModel->getById($grupo_id);
-
-        if (!$grupoInfo) {
-            echo json_encode(['success' => false, 'message' => 'Grupo no encontrado']); exit;
-        }
-
-        if (empty($grupoInfo['aula_id'])) {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'ERROR: Este grupo no tiene aula asignada por la DEP. No se puede crear horario.'
-            ]); 
+        if (!$grupo_id || !$docente_id || !$dia_inicio || !$hora_inicio || !$hora_fin) {
+            echo json_encode(['success' => false, 'message' => 'Datos incompletos']); 
             exit;
         }
 
-        $aula_id_asignada = $grupoInfo['aula_id'];
+        // Obtener información del grupo
+        $grupoModel = new Grupo();
+        $grupoInfo = $grupoModel->getById($grupo_id);
 
-       
-        $datos = [
+        if (!$grupoInfo || empty($grupoInfo['aula_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Grupo sin aula asignada']); 
+            exit;
+        }
+
+        // Validar que el docente puede dar la materia
+        if (!$this->docente_materia_model->puedeImpartir($docente_id, $grupoInfo['materia_id'])) {
+            echo json_encode(['success' => false, 'message' => 'El docente no está autorizado para impartir esta materia']); 
+            exit;
+        }
+
+        // Calcular horas del bloque
+        $inicio = strtotime($hora_inicio);
+        $fin = strtotime($hora_fin);
+        $horas_bloque = ($fin - $inicio) / 3600;
+        
+        // Validar máximo 2 horas continuas
+        if ($horas_bloque > 2) {
+            echo json_encode(['success' => false, 'message' => 'No se permiten bloques de más de 2 horas continuas']); 
+            exit;
+        }
+
+        // Obtener créditos de la materia
+        $materia = $this->materia_model->getById($grupoInfo['materia_id']);
+        $creditos_totales = $materia['creditos'];
+        
+        // Calcular bloques necesarios
+        $bloques_necesarios = ceil($creditos_totales / $horas_bloque);
+        
+        // Días de la semana
+        $dias_semana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
+        $idx_dia_inicio = array_search($dia_inicio, $dias_semana);
+        
+        $datos_base = [
             'grupo_id' => $grupo_id,
-            'materia_id' => $_POST['materia_id'] ?? null,
-            'docente_id' => $_POST['docente_id'] ?? null,
-            'aula_id' => $aula_id_asignada, // <-- Forzado
-            'periodo_id' => $_POST['periodo_id'] ?? null,
-            'dia' => $_POST['dia'] ?? null,
-            'hora_inicio' => $_POST['hora_inicio'] ?? null,
-            'hora_fin' => $_POST['hora_fin'] ?? null,
+            'materia_id' => $grupoInfo['materia_id'],
+            'docente_id' => $docente_id,
+            'aula_id' => $grupoInfo['aula_id'],
+            'periodo_id' => $_POST['periodo_id'],
+            'hora_inicio' => $hora_inicio,
+            'hora_fin' => $hora_fin,
+            'horas_consecutivas' => $horas_bloque,
             'estado' => 'borrador'
         ];
         
-        $result = $this->horario_model->create($datos);
-        echo json_encode($result);
-    }
-
-    public function eliminar() {
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        echo json_encode(['success' => false, 'message' => 'Método no permitido']); 
+        $horarios_creados = [];
+        $bloques_creados = 0;
+        
+        // Distribuir en días
+        for ($i = 0; $i < $bloques_necesarios && $bloques_creados < $bloques_necesarios; $i++) {
+            $idx_dia = ($idx_dia_inicio + $i) % count($dias_semana);
+            $dia_actual = $dias_semana[$idx_dia];
+            
+            // Verificar conflictos
+            if ($this->verificarConflicto($docente_id, $grupoInfo['aula_id'], $dia_actual, $hora_inicio, $hora_fin, $_POST['periodo_id'])) {
+                continue; // Saltar este día si hay conflicto
+            }
+            
+            $datos_bloque = array_merge($datos_base, ['dia' => $dia_actual]);
+            $result = $this->horario_model->create($datos_bloque);
+            
+            if ($result['success']) {
+                $horarios_creados[] = $result['horario'];
+                $bloques_creados++;
+            }
+        }
+        
+        if (empty($horarios_creados)) {
+            echo json_encode(['success' => false, 'message' => 'No se pudieron crear bloques de horario']);
+            exit;
+        }
+        
+        echo json_encode([
+            'success' => true, 
+            'message' => "Se crearon $bloques_creados bloques de horario",
+            'horarios' => $horarios_creados,
+            'bloques_creados' => $bloques_creados,
+            'bloques_esperados' => $bloques_necesarios
+        ]);
         exit;
     }
     
-    $id = $_POST['id'] ?? null;
-    
-    if (!$id) {
-        echo json_encode(['success' => false, 'message' => 'ID no especificado']); 
-        exit;
-    }
-    
-    try {
+    /**
+     * Verificar conflictos de horario
+     */
+    private function verificarConflicto($docente_id, $aula_id, $dia, $hora_inicio, $hora_fin, $periodo_id) {
         $db = new Database();
         $conn = $db->getConnection();
         
-        // Elimina el horario
-        $sql = "DELETE FROM horarios WHERE id = :id";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([':id' => $id]);
+        // Verificar conflicto de docente
+        $sql = "SELECT COUNT(*) FROM horarios 
+                WHERE docente_id = :docente_id 
+                AND dia = :dia 
+                AND periodo_id = :periodo_id
+                AND (
+                    (hora_inicio < :hora_fin AND hora_fin > :hora_inicio)
+                )";
         
-        if ($stmt->rowCount() > 0) {
-            
-            if (function_exists('logAccion')) {
-                logAccion(
-                    Auth::getCurrentUser(), 
-                    $_SESSION['rol'], 
-                    'DELETE', 
-                    'horarios', 
-                    $id, 
-                    "Bloque de horario eliminado"
-                );
-            }
-            
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Bloque eliminado correctamente'
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'No se pudo eliminar el bloque'
-            ]);
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            ':docente_id' => $docente_id,
+            ':dia' => $dia,
+            ':periodo_id' => $periodo_id,
+            ':hora_inicio' => $hora_inicio,
+            ':hora_fin' => $hora_fin
+        ]);
+        
+        if ($stmt->fetchColumn() > 0) {
+            return true;
         }
         
-    } catch (Exception $e) {
-        error_log("Error al eliminar horario: " . $e->getMessage());
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Error al eliminar: ' . $e->getMessage()
+        // Verificar conflicto de aula
+        $sql = "SELECT COUNT(*) FROM horarios 
+                WHERE aula_id = :aula_id 
+                AND dia = :dia 
+                AND periodo_id = :periodo_id
+                AND (
+                    (hora_inicio < :hora_fin AND hora_fin > :hora_inicio)
+                )";
+        
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([
+            ':aula_id' => $aula_id,
+            ':dia' => $dia,
+            ':periodo_id' => $periodo_id,
+            ':hora_inicio' => $hora_inicio,
+            ':hora_fin' => $hora_fin
         ]);
+        
+        return $stmt->fetchColumn() > 0;
     }
-    exit;
-}
+
+    public function eliminar() {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']); 
+            exit;
+        }
+        
+        $id = $_POST['id'] ?? null;
+        
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID no especificado']); 
+            exit;
+        }
+        
+        try {
+            $db = new Database();
+            $conn = $db->getConnection();
+            
+            $sql = "DELETE FROM horarios WHERE id = :id";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute([':id' => $id]);
+            
+            if ($stmt->rowCount() > 0) {
+                if (function_exists('logAccion')) {
+                    logAccion(Auth::getCurrentUser(), $_SESSION['rol'], 'DELETE', 'horarios', $id, "Bloque eliminado");
+                }
+                
+                echo json_encode(['success' => true, 'message' => 'Bloque eliminado correctamente']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'No se pudo eliminar']);
+            }
+            
+        } catch (Exception $e) {
+            error_log("Error eliminar: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        }
+        exit;
+    }
     
-    // Marca estado y sincroniza a Firebase
-   
     public function conciliar() {
         if (!Auth::hasRole(ROLE_JEFE_DEPTO)) {
             header('Location: index.php?c=dashboard&error=access'); exit;
@@ -185,39 +291,32 @@ class HorariosController {
         $semestre_id = $_POST['semestre_id'] ?? null;
         
         if (!$periodo_id || !$carrera_id || !$semestre_id) {
-            $_SESSION['error'] = 'Parámetros incompletos';
-            header('Location: index.php?c=horarios'); exit;
+            echo json_encode(['success' => false, 'message' => 'Parámetros incompletos']);
+            exit;
         }
         
-        // Marcar como conciliado en MySQL
         $result = $this->horario_model->marcarComoConciliado($periodo_id, $carrera_id, $semestre_id);
         
         if ($result['success']) {
-            //  Sincronizar a Firebase
             try {
                 if (function_exists('sincronizarHorariosFirebase')) {
                     $syncResult = sincronizarHorariosFirebase($periodo_id, $carrera_id, $semestre_id);
                     
                     if ($syncResult['success']) {
-                        $result['message'] .= " y sincronizado con la Nube.";
+                        $result['message'] .= " y sincronizado con Firebase";
                     } else {
-                        $result['message'] .= " (Advertencia: Falló sync Firebase - " . $syncResult['message'] . ")";
+                        $result['message'] .= " (Advertencia: Falló sync Firebase)";
                     }
                 }
             } catch (Exception $e) {
                 error_log("Error sync: " . $e->getMessage());
                 $result['message'] .= " (Error de red al sincronizar)";
             }
-
-            $_SESSION['success'] = $result['message'];
-        } else {
-            $_SESSION['error'] = $result['message'];
         }
         
-        header("Location: index.php?c=horarios&a=asignar&periodo=$periodo_id&carrera=$carrera_id&semestre=$semestre_id");
+        echo json_encode($result);
         exit;
     }
-    
 
     public function obtenerHorarios() {
         header('Content-Type: application/json');
@@ -239,7 +338,9 @@ class HorariosController {
                 'hora_inicio' => substr($h['hora_inicio'], 0, 5),
                 'hora_fin' => substr($h['hora_fin'], 0, 5),
                 'docente_nombre' => $h['docente_nombre'],
-                'aula' => $h['aula']
+                'aula' => $h['aula'],
+                'materia_clave' => $h['materia_clave'],
+                'materia_nombre' => $h['materia_nombre']
             ];
         }, $horarios);
         
@@ -247,7 +348,6 @@ class HorariosController {
         exit;
     }
 
-    
     public function verDocente() {
         $docente_id = $_GET['docente'] ?? null;
         $periodo_id = $_GET['periodo'] ?? null;
@@ -261,7 +361,6 @@ class HorariosController {
         $stmt->execute([':id'=>$docente_id]);
         $docente = $stmt->fetch();
 
-        // Obtener horarios conciliados
         $sql = "SELECT h.*, m.nombre as materia_nombre, g.clave as grupo_clave, 
                 CONCAT(a.edificio, '-', a.numero) as aula 
                 FROM horarios h 
