@@ -1,354 +1,562 @@
-<?php $page_title = 'Nuevo Docente'; ?>
+<?php
+$page_title = 'Asignar Horarios';
+
+$db = new Database();
+$conn = $db->getConnection();
+
+$stmt = $conn->prepare("SELECT nombre, clave FROM carreras WHERE id = :id");
+$stmt->execute([':id' => $carrera_id]);
+$info_carrera = $stmt->fetch();
+$nombre_carrera = $info_carrera ? $info_carrera['nombre'] : 'Carrera no encontrada';
+
+$stmt = $conn->prepare("SELECT nombre FROM semestres WHERE id = :id");
+$stmt->execute([':id' => $semestre_id]);
+$nombre_semestre = $stmt->fetchColumn() ?: 'Semestre no encontrado';
+
+$horas_dia = [];
+for ($h = 7; $h <= 20; $h++) { 
+    $horas_dia[] = sprintf('%02d:00', $h); 
+}
+$dias_semana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
+$dias_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
+
+$matriz_horarios = [];
+foreach ($dias_semana as $dia) {
+    foreach ($horas_dia as $hora) {
+        $key = $dia . '-' . str_replace(':', '', substr($hora, 0, 5));
+        $matriz_horarios[$key] = null; 
+    }
+}
+
+if (!empty($horarios_existentes)) {
+    foreach ($horarios_existentes as $h) {
+        $dia = strtolower($h['dia']);
+        $hora_inicio = substr($h['hora_inicio'], 0, 5);
+        $key = $dia . '-' . str_replace(':', '', $hora_inicio);
+        $matriz_horarios[$key] = $h;
+    }
+}
+?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-    :root {
-        --primary: #2563eb; --primary-hover: #1d4ed8; --muted: #64748b;
-        --text-main: #0f172a; --bg: #ffffff; --surface: #f8fafc;
-        --border: #e2e8f0; --radius: 12px;
-    }
-    .page-container { font-family: "Open Sans", system-ui; padding: 22px; color: var(--text-main); }
-    .breadcrumb-wrapper { margin-bottom: 16px; }
-    .breadcrumb-clean {
-        display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
-        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-        font-size: 0.93rem; font-weight: 500;
-    }
-    .breadcrumb-clean .breadcrumb-item a { color: #64748b; text-decoration: none; padding: 2px 6px; border-radius: 6px; }
-    .breadcrumb-clean .breadcrumb-item a:hover { background: rgba(37,99,235,0.07); color: #2563eb; }
-    .breadcrumb-clean .breadcrumb-item + .breadcrumb-item::before { content: "›"; margin-right: 4px; color: #cbd5e1; }
-    .breadcrumb-clean .active { font-weight: 700; color: #2563eb; }
-    .page-title { font-size: 1.45rem; font-weight: 800; margin: 0 0 22px 0; }
-    .content-grid { display: grid; grid-template-columns: 1fr 380px; gap: 22px; align-items: start; }
-    @media (max-width: 968px) { .content-grid { grid-template-columns: 1fr; } }
-    .card-box {
-        background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
-        padding: 24px; margin-bottom: 22px; box-shadow: 0 1px 6px rgba(0,0,0,0.04);
-    }
-    .alert-info, .alert-success {
-        padding: 14px 16px; border-radius: 10px; margin-bottom: 24px;
-        display: flex; align-items: center; gap: 10px; font-size: 0.93rem;
-    }
-    .alert-info { background: #dbeafe; border: 1px solid #93c5fd; color: #1e40af; }
-    .alert-success { background: #d1fae5; border: 1px solid #a7f3d0; color: #065f46; }
-    .section-title {
-        font-size: 1.1rem; font-weight: 700; color: var(--text-main);
-        margin: 28px 0 16px 0; padding-bottom: 8px; border-bottom: 2px solid var(--border);
-    }
-    .section-title:first-of-type { margin-top: 0; }
-    .form-row {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;
-    }
-    .form-row.three-cols { grid-template-columns: 1fr 1fr 1fr; }
-    .form-row.single { grid-template-columns: 1fr; }
-    .form-group { margin-bottom: 20px; }
-    .form-label {
-        display: block; font-size: 0.90rem; font-weight: 600; color: var(--text-main); margin-bottom: 8px;
-    }
-    .form-control, .form-select {
-        width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
-        font-size: 0.95rem; background: var(--bg); transition: 0.15s ease;
-    }
-    .form-control:focus, .form-select:focus {
-        outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-    }
-    .text-muted { font-size: 0.82rem; color: var(--muted); margin-top: 4px; display: block; }
+    :root { --primary: #2563eb; --success: #10b981; --danger: #ef4444; --warning: #f59e0b; --info: #3b82f6; --bg: #ffffff; --surface: #f8fafc; --border: #e2e8f0; --muted: #64748b; --text: #0f172a; }
+    .page-container { padding: 22px; font-family: "Open Sans", sans-serif; color: var(--text); }
+    .breadcrumb-clean { display: inline-flex; gap: 6px; padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem; font-weight: 500; margin-bottom: 16px; }
+    .breadcrumb-clean a { text-decoration: none; color: var(--muted); transition: color 0.2s; }
+    .breadcrumb-clean a:hover { color: var(--primary); }
+    .breadcrumb-clean .active { color: var(--primary); font-weight: 700; }
+    .header-section { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+    .page-title { font-size: 1.45rem; font-weight: 800; margin: 0; }
+    .page-subtitle { font-size: 0.95rem; color: var(--muted); margin-top: 4px; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+    .page-subtitle i { color: var(--primary); opacity: 0.8; }
+    .card-box { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 22px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+    .card-header { font-weight: 700; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-bottom: 16px; display: flex; gap: 10px; align-items: center; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
+    .form-control { width: 100%; height: 45px; padding: 8px 12px; border: 1px solid #d1d9e5; border-radius: 8px; background: #fff; transition: all 0.2s; }
+    .form-control:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .aula-display { background: #f0f9ff; border: 1px dashed #bae6fd; border-radius: 8px; height: 45px; display: flex; align-items: center; padding: 0 12px; font-weight: 600; color: #0369a1; gap: 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; transition: all 0.3s; }
+    .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .horario-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; table-layout: fixed; }
+    .horario-table th { background: #1e293b; color: #fff; padding: 12px; border: 1px solid #334155; text-align: center; }
+    .horario-table td { padding: 8px; min-height: 100px; border: 1px solid var(--border); vertical-align: top; width: 18%; }
+    .celda-hora { background: var(--surface); font-weight: 700; width: 10%; text-align: center; vertical-align: middle; }
+    .celda-horario { background: #fafbfc; transition: 0.2s; height: 100px; }
+    .celda-horario:hover { background: #f1f5f9; }
+    .bloque-horario { padding: 8px; border-radius: 6px; margin-bottom: 6px; border-left: 4px solid; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-size: 0.8rem; animation: fadeIn 0.3s ease; }
+    .estado-borrador { border-color: #64748b; background: #f8fafc; }
+    .estado-conciliado { border-color: #2563eb; background: #eff6ff; }
+    .estado-publicado { border-color: #10b981; background: #f0fdf4; }
+    .btn-danger-sm { background: #ef4444; color: #fff; padding: 2px 8px; font-size: 0.7rem; width: 100%; margin-top: 5px; border: none; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+    .btn-danger-sm:hover { background: #dc2626; }
+    .btn { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; text-decoration: none; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 400px; display: flex; flex-direction: column; gap: 10px; }
+    .toast { background: #fff; padding: 16px 20px; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); border-left: 5px solid; display: flex; align-items: flex-start; gap: 12px; animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); min-width: 300px; }
+    .toast-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .toast-content { flex: 1; }
+    .toast-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+    .toast-message { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+    .toast-close { background: none; border: none; cursor: pointer; font-size: 1.2rem; color: var(--muted); padding: 0; margin-left: 8px; transition: color 0.2s; }
+    .toast-close:hover { color: var(--text); }
+    .toast.success { border-color: var(--success); }
+    .toast.success .toast-icon { color: var(--success); }
+    .toast.danger { border-color: var(--danger); }
+    .toast.danger .toast-icon { color: var(--danger); }
+    .toast.warning { border-color: var(--warning); }
+    .toast.warning .toast-icon { color: var(--warning); }
+    .toast.info { border-color: var(--info); }
+    .toast.info .toast-icon { color: var(--info); }
+    @keyframes slideInRight { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes slideOutRight { to { transform: translateX(400px); opacity: 0; } }
+    .toast.removing { animation: slideOutRight 0.3s ease forwards; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 10000; opacity: 0; animation: fadeIn 0.3s ease forwards; }
+    .modal-container { background: #fff; border-radius: 16px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); transform: scale(0.9); animation: scaleIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards; overflow: hidden; }
+    .modal-header { padding: 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .modal-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; flex-shrink: 0; }
+    .modal-icon.danger { background: #fee2e2; color: var(--danger); }
+    .modal-icon.success { background: #d1fae5; color: var(--success); }
+    .modal-icon.warning { background: #fef3c7; color: var(--warning); }
+    .modal-icon.info { background: #dbeafe; color: var(--info); }
+    .modal-title { font-size: 1.25rem; font-weight: 700; color: var(--text); margin: 0; }
+    .modal-body { padding: 24px; }
+    .modal-message { font-size: 1rem; color: var(--muted); line-height: 1.6; margin: 0; }
+    .modal-footer { padding: 16px 24px; background: var(--surface); display: flex; justify-content: flex-end; gap: 12px; }
+    .modal-btn { padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-size: 0.95rem; transition: all 0.2s; }
+    .modal-btn-cancel { background: #fff; color: var(--muted); border: 1px solid var(--border); }
+    .modal-btn-cancel:hover { background: var(--surface); color: var(--text); }
+    .modal-btn-confirm { background: var(--primary); color: #fff; }
+    .modal-btn-confirm:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+    .modal-btn-danger { background: var(--danger); color: #fff; }
+    .modal-btn-danger:hover { background: #dc2626; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(239,68,68,0.3); }
+    .modal-btn-success { background: var(--success); color: #fff; }
+    .modal-btn-success:hover { background: #059669; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+    @keyframes fadeIn { to { opacity: 1; } }
+    @keyframes scaleIn { to { transform: scale(1); opacity: 1; } }
+    .btn-loading { position: relative; pointer-events: none; }
+    .btn-loading::after { content: ""; position: absolute; width: 16px; height: 16px; top: 50%; left: 50%; margin-left: -8px; margin-top: -8px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Estilos para selector de materias */
-    .materias-selector {
-        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-        padding: 16px; max-height: 400px; overflow-y: auto;
+    /* Estilos para selector de docentes dinámico */
+    .docente-loading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+        background: #f0f9ff;
+        border-radius: 6px;
+        color: #0369a1;
+        font-size: 0.85rem;
     }
-    .materia-item {
-        padding: 10px 12px; background: white; border: 1px solid #e2e8f0;
-        border-radius: 8px; margin-bottom: 8px; cursor: pointer;
-        transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+    .docente-loading i {
+        animation: spin 1s linear infinite;
     }
-    .materia-item:hover { border-color: var(--primary); background: #eff6ff; }
-    .materia-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
-    .materia-info { flex: 1; }
-    .materia-clave { font-weight: 700; color: var(--primary); font-size: 0.9rem; }
-    .materia-nombre { font-size: 0.85rem; color: var(--text-main); margin-top: 2px; }
-    .materia-detalle { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
-    .filtro-materias {
-        margin-bottom: 12px; display: flex; gap: 10px;
+    .info-creditos {
+        background: #fef3c7;
+        border: 1px solid #fde047;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 16px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.9rem;
+        color: #854d0e;
     }
-    .filtro-materias select, .filtro-materias input {
-        flex: 1; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px;
-    }
-    .contador-materias {
-        text-align: center; padding: 8px; background: #dbeafe; border-radius: 6px;
-        font-weight: 600; color: #1e40af; font-size: 0.9rem; margin-bottom: 12px;
-    }
-
-    .button-group {
-        display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px;
-        padding-top: 20px; border-top: 1px solid var(--border);
-    }
-    .btn {
-        display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
-        border-radius: 10px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
-        transition: 0.25s ease; text-decoration: none; border: none;
-    }
-    .btn-secondary { background: #f1f5f9; color: var(--muted); border: 1px solid var(--border); }
-    .btn-secondary:hover { background: #e2e8f0; color: var(--text-main); transform: translateY(-2px); }
-    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 5px 14px rgba(37,99,235,0.22); }
-    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
-    .info-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
-    .info-card-header {
-        padding: 12px 16px; font-weight: 700; font-size: 0.90rem; display: flex; align-items: center; gap: 8px;
-        background: #dbeafe; color: #1e40af; border-bottom: 1px solid #93c5fd;
-    }
-    .info-card-body { padding: 16px; }
-    .info-card-body h6 { font-size: 0.88rem; font-weight: 700; margin: 0 0 8px 0; color: var(--text-main); }
-    .info-card-body p { font-size: 0.85rem; color: var(--muted); margin: 0 0 12px 0; line-height: 1.6; }
-    .info-card-body ul { margin: 0; padding-left: 20px; }
-    .info-card-body ul li { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; line-height: 1.5; }
-    @media (max-width: 600px) {
-        .form-row, .form-row.three-cols { grid-template-columns: 1fr; }
-        .button-group { flex-direction: column-reverse; }
-        .btn { width: 100%; justify-content: center; }
+    .info-creditos.show {
+        display: flex;
     }
 </style>
 
 <div class="page-container">
-    <div class="breadcrumb-wrapper">
-        <div class="breadcrumb-clean">
-            <span class="breadcrumb-item"><a href="<?php echo APP_URL; ?>index.php">Inicio</a></span>
-            <span class="breadcrumb-item"><a href="<?php echo APP_URL; ?>index.php?c=docentes">Docentes</a></span>
-            <span class="breadcrumb-item active">Nuevo Docente</span>
+    <div class="breadcrumb-clean">
+        <a href="<?php echo APP_URL; ?>">Inicio</a> <span class="mx-1">›</span>
+        <a href="<?php echo APP_URL; ?>index.php?c=horarios">Horarios</a> <span class="mx-1">›</span>
+        <span class="active">Asignar</span>
+    </div>
+
+    <div class="header-section">
+        <div>
+            <h1 class="page-title">Asignación de Horarios</h1>
+            <div class="page-subtitle">
+                <span><i class="fas fa-graduation-cap"></i> <?php echo htmlspecialchars($nombre_carrera); ?></span>
+                <span style="color: #cbd5e1;">|</span>
+                <span><i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($nombre_semestre); ?></span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button type="button" class="btn btn-success" onclick="mostrarModalConciliar()">
+                <i class="fas fa-check-circle"></i> Conciliar y Sincronizar
+            </button>
         </div>
     </div>
 
-    <h1 class="page-title">Nuevo Docente</h1>
+    <div id="toast-container"></div>
 
-    <div class="content-grid">
-        <div>
-            <div class="card-box">
-                <form method="POST" action="<?php echo APP_URL; ?>index.php?c=docentes&a=crear" class="needs-validation" novalidate>
-                    
-                    <div class="alert-info">
-                        <i class="fas fa-info-circle"></i> 
-                        <span><strong>Importante:</strong> Los campos marcados con * son obligatorios</span>
-                    </div>
-                    
-                    <h5 class="section-title">Información Laboral</h5>
-                    
-                    <div class="form-row">
-                        <div>
-                            <label for="numero_empleado" class="form-label">Número de Empleado *</label>
-                            <input type="text" class="form-control" id="numero_empleado" name="numero_empleado" 
-                                   required maxlength="20" style="text-transform: uppercase;" placeholder="Ej: D001">
-                        </div>
-                        <div>
-                            <label for="tipo" class="form-label">Tipo de Contratación *</label>
-                            <select class="form-select" id="tipo" name="tipo" required onchange="actualizarHorasMax()">
-                                <option value="">Seleccione...</option>
-                                <option value="tiempo_completo" selected>Tiempo Completo</option>
-                                <option value="medio_tiempo">Medio Tiempo</option>
-                                <option value="asignatura">Por Asignatura</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="horas_max_semana" class="form-label">Horas Máximas por Semana *</label>
-                        <input type="number" class="form-control" id="horas_max_semana" name="horas_max_semana" 
-                               required min="1" max="50" value="40">
-                        <small class="text-muted">Tiempo completo: 40 hrs | Medio tiempo: 20 hrs | Asignatura: Variable</small>
-                    </div>
-                    
-                    <h5 class="section-title">Información Personal</h5>
-                    
-                    <div class="form-row three-cols">
-                        <div>
-                            <label for="nombre" class="form-label">Nombre(s) *</label>
-                            <input type="text" class="form-control" id="nombre" name="nombre" required maxlength="100">
-                        </div>
-                        <div>
-                            <label for="apellido_paterno" class="form-label">Apellido Paterno *</label>
-                            <input type="text" class="form-control" id="apellido_paterno" name="apellido_paterno" required maxlength="100">
-                        </div>
-                        <div>
-                            <label for="apellido_materno" class="form-label">Apellido Materno</label>
-                            <input type="text" class="form-control" id="apellido_materno" name="apellido_materno" maxlength="100">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div>
-                            <label for="email" class="form-label">Email *</label>
-                            <input type="email" class="form-control" id="email" name="email" required maxlength="150" placeholder="ejemplo@instituto.edu.mx">
-                        </div>
-                        <div>
-                            <label for="telefono" class="form-label">Teléfono</label>
-                            <input type="tel" class="form-control" id="telefono" name="telefono" maxlength="20" placeholder="7471234567">
-                        </div>
-                    </div>
+    <div class="card-box">
+        <div class="card-header"><i class="fas fa-plus-circle"></i> Agregar Bloque de Horario</div>
+        
+        <div id="info-creditos" class="info-creditos">
+            <i class="fas fa-info-circle"></i>
+            <span id="texto-creditos"></span>
+        </div>
+        
+        <form id="form-agregar-horario">
+            <input type="hidden" name="periodo_id" value="<?php echo $periodo_id; ?>">
+            <input type="hidden" name="carrera_id" value="<?php echo $carrera_id; ?>">
+            <input type="hidden" name="semestre_id" value="<?php echo $semestre_id; ?>">
+            <input type="hidden" name="materia_id" id="materia_id">
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Grupo *</label>
+                    <select class="form-control" name="grupo_id" id="grupo_id" required onchange="cargarInfoMateria()">
+                        <option value="">Seleccione...</option>
+                        <?php foreach ($grupos as $grupo): ?>
+                            <option value="<?php echo $grupo['id']; ?>" 
+                                    data-materia="<?php echo $grupo['materia_id']; ?>"
+                                    data-clave="<?php echo $grupo['materia_clave']; ?>"
+                                    data-creditos="<?php echo $grupo['creditos']; ?>"
+                                    data-aula="<?php echo !empty($grupo['aula_asignada']) ? htmlspecialchars($grupo['aula_asignada']) : ''; ?>">
+                                <?php echo $grupo['clave']; ?> - <?php echo $grupo['materia_nombre']; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
 
-                    <h5 class="section-title"><i class="fas fa-book"></i> Materias que puede impartir</h5>
-                    
-                    <div class="contador-materias">
-                        <span id="contador-seleccionadas">0</span> materias seleccionadas
+                <div class="form-group">
+                    <label>Aula Asignada (Solo lectura)</label>
+                    <div id="info-aula-asignada" class="aula-display">
+                        <span style="color: #94a3b8;">Seleccione un grupo...</span>
                     </div>
+                </div>
 
-                    <div class="filtro-materias">
-                        <input type="text" id="buscar-materia" placeholder="🔍 Buscar materia..." onkeyup="filtrarMaterias()">
-                        <select id="filtro-carrera" onchange="filtrarMaterias()">
-                            <option value="">Todas las carreras</option>
-                            <?php
-                            $db = new Database();
-                            $carreras = $db->getConnection()->query("SELECT * FROM carreras WHERE activo=1 ORDER BY nombre")->fetchAll();
-                            foreach($carreras as $c) {
-                                echo "<option value='{$c['id']}'>{$c['nombre']}</option>";
-                            }
-                            ?>
+                <div class="form-group">
+                    <label>Docente Autorizado *</label>
+                    <div id="docente-container">
+                        <select class="form-control" name="docente_id" id="docente_id" required disabled>
+                            <option value="">Primero seleccione un grupo</option>
                         </select>
                     </div>
+                </div>
 
-                    <div class="materias-selector" id="materias-container">
-                        <?php if(!empty($materias)): ?>
-                            <?php foreach($materias as $mat): ?>
-                                <label class="materia-item" data-carrera="<?php echo $mat['carrera_id']; ?>" 
-                                       data-nombre="<?php echo strtolower($mat['nombre']); ?>"
-                                       data-clave="<?php echo strtolower($mat['clave']); ?>">
-                                    <input type="checkbox" name="materias[]" value="<?php echo $mat['id']; ?>" onchange="actualizarContador()">
-                                    <div class="materia-info">
-                                        <div class="materia-clave"><?php echo htmlspecialchars($mat['clave']); ?></div>
-                                        <div class="materia-nombre"><?php echo htmlspecialchars($mat['nombre']); ?></div>
-                                        <div class="materia-detalle">
-                                            <i class="fas fa-graduation-cap"></i> <?php echo htmlspecialchars($mat['carrera_nombre']); ?> - 
-                                            <i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($mat['semestre_nombre']); ?> - 
-                                            <i class="fas fa-clock"></i> <?php echo $mat['horas_semana']; ?>hrs
+                <div class="form-group">
+                    <label>Día *</label>
+                    <select class="form-control" name="dia" required>
+                        <option value="lunes">Lunes</option>
+                        <option value="martes">Martes</option>
+                        <option value="miercoles">Miércoles</option>
+                        <option value="jueves">Jueves</option>
+                        <option value="viernes">Viernes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Hora Inicio *</label>
+                    <select class="form-control" name="hora_inicio" id="hora_inicio" required onchange="validarHoras()">
+                        <?php foreach ($horas_dia as $h): ?>
+                            <option value="<?php echo $h; ?>:00"><?php echo $h; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Hora Fin * (Máx. 2 horas)</label>
+                    <select class="form-control" name="hora_fin" id="hora_fin" required onchange="validarHoras()">
+                        <?php foreach ($horas_dia as $h): if($h > '07:00'): ?>
+                            <option value="<?php echo $h; ?>:00"><?php echo $h; ?></option>
+                        <?php endif; endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="margin-top: 16px; text-align: right;">
+                <button type="submit" id="btn-submit" class="btn btn-primary" disabled>
+                    <i class="fas fa-save"></i> Crear Bloques Automáticamente
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card-box" style="padding: 0; overflow: hidden;">
+        <div class="table-container">
+            <table class="horario-table">
+                <thead>
+                    <tr>
+                        <th>Hora</th>
+                        <?php foreach ($dias_labels as $d) echo "<th>$d</th>"; ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($horas_dia as $hora): ?>
+                    <tr>
+                        <td class="celda-hora"><?php echo $hora; ?></td>
+                        <?php foreach ($dias_semana as $dia): 
+                            $hora_id = str_replace(':', '', substr($hora, 0, 5)); 
+                            $celda_id = "celda-{$dia}-{$hora_id}";
+                            $key = "{$dia}-{$hora_id}";
+                            $bloque_existente = $matriz_horarios[$key] ?? null;
+                        ?>
+                            <td class="celda-horario" id="<?php echo $celda_id; ?>" 
+                                data-dia="<?php echo $dia; ?>" 
+                                data-hora="<?php echo substr($hora, 0, 5); ?>">
+                                
+                                <?php if ($bloque_existente): ?>
+                                    <div class="bloque-horario estado-<?php echo $bloque_existente['estado']; ?>">
+                                        <div style="font-weight:700; color:#2563eb; line-height: 1.2; margin-bottom: 4px;">
+                                            <?php echo htmlspecialchars($bloque_existente['materia_clave']); ?>
+                                            <div style="font-size:0.85em; color:#1e293b; font-weight:600;">
+                                                <?php echo htmlspecialchars($bloque_existente['materia_nombre']); ?>
+                                            </div>
                                         </div>
+                                        <div style="font-size:0.75rem; color:#64748b;">
+                                            <i class="fas fa-user"></i> <?php echo htmlspecialchars($bloque_existente['docente_nombre']); ?><br>
+                                            <i class="fas fa-door-open"></i> <?php echo htmlspecialchars($bloque_existente['aula']); ?>
+                                        </div>
+                                        <div style="font-size:0.75rem; font-weight:700; margin-top:4px; border-top:1px solid #eee; padding-top:4px;">
+                                            <?php echo substr($bloque_existente['hora_inicio'], 0, 5); ?> - 
+                                            <?php echo substr($bloque_existente['hora_fin'], 0, 5); ?>
+                                        </div>
+                                        <button class="btn-danger-sm" onclick="mostrarModalEliminar(<?php echo $bloque_existente['id']; ?>)">Eliminar</button>
                                     </div>
-                                </label>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <p style="text-align:center; color:#64748b; padding:20px;">No hay materias disponibles</p>
-                        <?php endif; ?>
-                    </div>
-
-                    <h5 class="section-title">Acceso al Sistema (Opcional)</h5>
-                    
-                    <div class="form-group">
-                        <label style="cursor:pointer; display:flex; align-items:center; gap:10px;">
-                            <input type="checkbox" id="crear_cuenta" name="crear_cuenta" onchange="toggleCuentaFields()" style="width:18px; height:18px;">
-                            <strong>Crear cuenta de usuario para que el docente pueda entrar al sistema</strong>
-                        </label>
-                    </div>
-
-                    <div id="campos_cuenta" style="display:none; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
-                        <div class="alert-success">
-                            <i class="fas fa-check-circle"></i>
-                            <span>El docente podrá iniciar sesión con estos datos</span>
-                        </div>
-
-                        <div class="form-row">
-                            <div>
-                                <label for="usuario_login" class="form-label">Usuario para login</label>
-                                <input type="text" class="form-control" id="usuario_login" name="usuario_login" 
-                                       placeholder="Dejar vacío para usar el No. Empleado">
-                                <small class="text-muted">Si lo dejas vacío, el usuario será el Número de Empleado.</small>
-                            </div>
-                            <div>
-                                <label for="password" class="form-label">Contraseña *</label>
-                                <input type="password" class="form-control" id="password" name="password" minlength="6">
-                                <small class="text-muted">Mínimo 6 caracteres</small>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="button-group">
-                        <a href="<?php echo APP_URL; ?>index.php?c=docentes" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left"></i> Cancelar
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Guardar Docente
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div>
-            <div class="info-card">
-                <div class="info-card-header">
-                    <i class="fas fa-lightbulb"></i>
-                    <span>Recomendaciones</span>
-                </div>
-                <div class="info-card-body">
-                    <h6>Asignación de Materias</h6>
-                    <p>El docente solo podrá impartir las materias que selecciones aquí. Esto permite:</p>
-                    <ul>
-                        <li>Control preciso de asignaciones</li>
-                        <li>Evitar errores en horarios</li>
-                        <li>Especialización docente</li>
-                    </ul>
-                    <hr>
-                    <h6>¿Crear cuenta de usuario?</h6>
-                    <p>Marcar esta opción si el docente necesita:</p>
-                    <ul>
-                        <li>Ver su horario personal</li>
-                        <li>Recibir notificaciones</li>
-                        <li>Acceder al sistema</li>
-                    </ul>
-                </div>
-            </div>
+                                <?php endif; ?>
+                                
+                            </td>
+                        <?php endforeach; ?>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <script>
-function actualizarHorasMax() {
-    const tipo = document.getElementById('tipo').value;
-    const horasInput = document.getElementById('horas_max_semana');
-    
-    switch(tipo) {
-        case 'tiempo_completo': horasInput.value = 40; break;
-        case 'medio_tiempo': horasInput.value = 20; break;
-        case 'asignatura': horasInput.value = 10; break;
-        default: horasInput.value = 0;
-    }
+const APP_URL = '<?php echo APP_URL; ?>';
+const PERIODO_ID = <?php echo $periodo_id; ?>;
+const CARRERA_ID = <?php echo $carrera_id; ?>;
+const SEMESTRE_ID = <?php echo $semestre_id; ?>;
+
+let grupoSeleccionado = null;
+let creditosMateria = 0;
+
+// Funciones de Toast y Modales (mantener las mismas del código anterior)
+function mostrarToast(tipo, titulo, mensaje) {
+    const container = document.getElementById('toast-container');
+    const iconos = { success: 'fa-check-circle', danger: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+    const toast = document.createElement('div');
+    toast.className = `toast ${tipo}`;
+    toast.innerHTML = `<div class="toast-icon"><i class="fas ${iconos[tipo]}"></i></div><div class="toast-content"><div class="toast-title">${titulo}</div><div class="toast-message">${mensaje}</div></div><button class="toast-close" onclick="cerrarToast(this)"><i class="fas fa-times"></i></button>`;
+    container.appendChild(toast);
+    setTimeout(() => cerrarToast(toast.querySelector('.toast-close')), 5000);
 }
 
-function toggleCuentaFields() {
-    const check = document.getElementById('crear_cuenta');
-    const container = document.getElementById('campos_cuenta');
-    const inputPass = document.getElementById('password');
-    const inputUser = document.getElementById('usuario_login');
+function cerrarToast(btn) {
+    const toast = btn.closest('.toast');
+    toast.classList.add('removing');
+    setTimeout(() => toast.remove(), 300);
+}
+
+function mostrarModal(config) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    const iconos = { danger: 'fa-exclamation-triangle', success: 'fa-check-circle', warning: 'fa-exclamation-circle', info: 'fa-info-circle' };
+    overlay.innerHTML = `<div class="modal-container"><div class="modal-header"><div class="modal-icon ${config.tipo}"><i class="fas ${iconos[config.tipo]}"></i></div><h3 class="modal-title">${config.titulo}</h3></div><div class="modal-body"><p class="modal-message">${config.mensaje}</p></div><div class="modal-footer"><button class="modal-btn modal-btn-cancel" onclick="cerrarModal(this)">${config.textoCancelar || 'Cancelar'}</button><button class="modal-btn modal-btn-${config.tipo}" id="modal-confirm-btn">${config.textoConfirmar || 'Confirmar'}</button></div></div>`;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrarModal(overlay); });
+    const confirmBtn = overlay.querySelector('#modal-confirm-btn');
+    confirmBtn.addEventListener('click', () => { if (config.onConfirm) config.onConfirm(); cerrarModal(overlay); });
+    return overlay;
+}
+
+function cerrarModal(elemento) {
+    const overlay = elemento.closest ? elemento.closest('.modal-overlay') : elemento;
+    overlay.style.animation = 'fadeOut 0.3s ease';
+    setTimeout(() => overlay.remove(), 300);
+}
+
+// Cargar docentes por materia (NUEVO)
+async function cargarInfoMateria() {
+    const grupoSelect = document.getElementById('grupo_id');
+    const selectedOption = grupoSelect.options[grupoSelect.selectedIndex];
+    const infoAula = document.getElementById('info-aula-asignada');
+    const btnSubmit = document.getElementById('btn-submit');
+    const docenteContainer = document.getElementById('docente-container');
+    const infoCred = document.getElementById('info-creditos');
+    const textoCred = document.getElementById('texto-creditos');
     
-    if (check.checked) {
-        container.style.display = 'block';
-        inputPass.setAttribute('required', 'required');
+    if (!selectedOption.value) {
+        grupoSeleccionado = null;
+        infoAula.innerHTML = '<span style="color: #94a3b8;">Seleccione un grupo...</span>';
+        btnSubmit.disabled = true;
+        docenteContainer.innerHTML = '<select class="form-control" name="docente_id" required disabled><option value="">Primero seleccione un grupo</option></select>';
+        infoCred.classList.remove('show');
+        return;
+    }
+    
+    const materiaId = selectedOption.dataset.materia;
+    document.getElementById('materia_id').value = materiaId;
+    grupoSeleccionado = selectedOption.value;
+    creditosMateria = parseInt(selectedOption.dataset.creditos);
+    
+    const aulaNombre = selectedOption.dataset.aula;
+    
+    if (aulaNombre && aulaNombre !== '') {
+        infoAula.innerHTML = `<i class="fas fa-door-open"></i> ${aulaNombre}`;
+        infoAula.style.color = '#0369a1';
+        infoAula.style.backgroundColor = '#f0f9ff';
+        infoAula.style.borderColor = '#bae6fd';
     } else {
-        container.style.display = 'none';
-        inputPass.removeAttribute('required');
-        inputPass.value = '';
-        inputUser.value = '';
+        infoAula.innerHTML = `<i class="fas fa-exclamation-triangle"></i> SIN AULA (DEP)`;
+        infoAula.style.color = '#991b1b';
+        infoAula.style.backgroundColor = '#fee2e2';
+        infoAula.style.borderColor = '#fca5a5';
+        btnSubmit.disabled = true;
+        mostrarToast('warning', 'Sin Aula', 'El grupo no tiene aula asignada');
+        return;
+    }
+    
+    // Mostrar info de créditos
+    textoCred.innerHTML = `Esta materia tiene <strong>${creditosMateria} créditos</strong>. Los bloques se distribuirán automáticamente.`;
+    infoCred.classList.add('show');
+    
+    // Cargar docentes autorizados por AJAX
+    docenteContainer.innerHTML = '<div class="docente-loading"><i class="fas fa-spinner"></i> Cargando docentes autorizados...</div>';
+    
+    try {
+        const response = await fetch(`${APP_URL}index.php?c=horarios&a=obtenerDocentesPorMateria&materia_id=${materiaId}`);
+        const data = await response.json();
+        
+        if (data.success && data.docentes.length > 0) {
+            let options = '<option value="">Seleccione docente...</option>';
+            data.docentes.forEach(doc => {
+                options += `<option value="${doc.id}">${doc.apellido_paterno} ${doc.nombre}</option>`;
+            });
+            docenteContainer.innerHTML = `<select class="form-control" name="docente_id" id="docente_id" required>${options}</select>`;
+            btnSubmit.disabled = false;
+        } else {
+            docenteContainer.innerHTML = '<div style="color:#dc2626; padding:10px; border:1px solid #fca5a5; border-radius:6px; background:#fee2e2;"><i class="fas fa-exclamation-circle"></i> No hay docentes autorizados para esta materia</div>';
+            btnSubmit.disabled = true;
+            mostrarToast('warning', 'Sin Docentes', 'No hay docentes autorizados para impartir esta materia');
+        }
+    } catch (error) {
+        console.error(error);
+        docenteContainer.innerHTML = '<div style="color:#dc2626;">Error al cargar docentes</div>';
+        btnSubmit.disabled = true;
     }
 }
 
-function actualizarContador() {
-    const checkboxes = document.querySelectorAll('input[name="materias[]"]:checked');
-    document.getElementById('contador-seleccionadas').textContent = checkboxes.length;
+function validarHoras() {
+    const inicio = document.getElementById('hora_inicio').value;
+    const fin = document.getElementById('hora_fin').value;
+    
+    if (!inicio || !fin) return;
+    
+    const horaInicio = parseInt(inicio.split(':')[0]);
+    const horaFin = parseInt(fin.split(':')[0]);
+    const diferencia = horaFin - horaInicio;
+    
+    if (diferencia > 2) {
+        mostrarToast('warning', 'Límite de Horas', 'No se permiten bloques de más de 2 horas continuas');
+        document.getElementById('hora_fin').value = '';
+    }
+    
+    if (diferencia <= 0) {
+        mostrarToast('warning', 'Horario Inválido', 'La hora de fin debe ser posterior a la hora de inicio');
+        document.getElementById('hora_fin').value = '';
+    }
 }
 
-function filtrarMaterias() {
-    const busqueda = document.getElementById('buscar-materia').value.toLowerCase();
-    const carreraFiltro = document.getElementById('filtro-carrera').value;
-    const items = document.querySelectorAll('.materia-item');
+// Guardar con distribución automática
+document.getElementById('form-agregar-horario').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!grupoSeleccionado) return;
+
+    const btn = document.getElementById('btn-submit');
+    const originalHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('btn-loading');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando bloques...';
+
+    fetch(APP_URL + 'index.php?c=horarios&a=guardar', {
+        method: 'POST',
+        body: new FormData(this)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            mostrarToast('success', '¡Bloques Creados!', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            mostrarToast('danger', 'Error', data.message || 'No se pudieron crear los bloques');
+        }
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = originalHTML;
+    })
+    .catch(err => {
+        console.error(err);
+        mostrarToast('danger', 'Error de Conexión', 'No se pudo conectar con el servidor');
+        btn.disabled = false;
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = originalHTML;
+    });
+});
+
+function mostrarModalEliminar(id) {
+    mostrarModal({
+        tipo: 'danger',
+        titulo: '¿Eliminar Bloque?',
+        mensaje: 'Esta acción eliminará permanentemente el bloque de horario.',
+        textoConfirmar: 'Eliminar',
+        textoCancelar: 'Cancelar',
+        onConfirm: () => eliminarBloque(id)
+    });
+}
+
+function eliminarBloque(id) {
+    fetch(APP_URL + 'index.php?c=horarios&a=eliminar', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'id='+id
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            mostrarToast('success', 'Eliminado', 'Bloque eliminado correctamente');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            mostrarToast('danger', 'Error', data.message);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        mostrarToast('danger', 'Error', 'No se pudo conectar con el servidor');
+    });
+}
+
+function mostrarModalConciliar() {
+    mostrarModal({
+        tipo: 'warning',
+        titulo: '¿Conciliar Horarios?',
+        mensaje: 'Esta acción sincronizará los horarios con Firebase y los marcará como conciliados.',
+        textoConfirmar: 'Conciliar',
+        textoCancelar: 'Cancelar',
+        onConfirm: () => conciliarHorarios()
+    });
+}
+
+function conciliarHorarios() {
+    const formData = new FormData();
+    formData.append('periodo_id', PERIODO_ID);
+    formData.append('carrera_id', CARRERA_ID);
+    formData.append('semestre_id', SEMESTRE_ID);
     
-    items.forEach(item => {
-        const nombre = item.dataset.nombre;
-        const clave = item.dataset.clave;
-        const carrera = item.dataset.carrera;
-        
-        const coincideBusqueda = nombre.includes(busqueda) || clave.includes(busqueda);
-        const coincideCarrera = !carreraFiltro || carrera === carreraFiltro;
-        
-        item.style.display = (coincideBusqueda && coincideCarrera) ? 'flex' : 'none';
+    mostrarToast('info', 'Procesando...', 'Sincronizando con Firebase...');
+    
+    fetch(APP_URL + 'index.php?c=horarios&a=conciliar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) {
+            mostrarToast('success', '¡Sincronización Exitosa!', data.message);
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            mostrarToast('danger', 'Error', data.message);
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        mostrarToast('danger', 'Error', 'No se pudo conectar con el servidor');
     });
 }
 </script>

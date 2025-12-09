@@ -96,8 +96,8 @@
     .btn-secondary:hover { background: #e2e8f0; color: var(--text-main); transform: translateY(-2px); }
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 5px 14px rgba(37,99,235,0.22); }
     .btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); }
-    .btn-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .btn-danger:hover { background: #fecaca; transform: translateY(-2px); }
+    .btn-danger { background: #dc2626; color: #fff; box-shadow: 0 5px 14px rgba(220,38,38,0.22); }
+    .btn-danger:hover { background: #b91c1c; transform: translateY(-2px); }
 
     .info-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,0.04); }
     .info-card-header {
@@ -126,7 +126,7 @@
     </div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:22px;">
-        <h1 class="page-title" style="margin:0;">Editar Docente: <?php echo htmlspecialchars($docente['nombre']); ?></h1>
+        <h1 class="page-title" style="margin:0;">Editar Docente: <?php echo htmlspecialchars($docente['nombre'] . ' ' . $docente['apellido_paterno']); ?></h1>
         <button type="button" class="btn btn-danger" onclick="confirmarEliminar(<?php echo $docente['id']; ?>)">
             <i class="fas fa-trash"></i> Eliminar
         </button>
@@ -161,6 +161,7 @@
                         <input type="number" class="form-control" id="horas_max_semana" name="horas_max_semana" 
                                required min="1" max="50" 
                                value="<?php echo htmlspecialchars($docente['horas_max_semana']); ?>">
+                        <small class="text-muted">Tiempo completo: 40 hrs | Medio tiempo: 20 hrs | Asignatura: Variable</small>
                     </div>
                     
                     <h5 class="section-title">Información Personal</h5>
@@ -179,7 +180,7 @@
                         <div>
                             <label for="apellido_materno" class="form-label">Apellido Materno</label>
                             <input type="text" class="form-control" id="apellido_materno" name="apellido_materno" maxlength="100"
-                                   value="<?php echo htmlspecialchars($docente['apellido_materno']); ?>">
+                                   value="<?php echo htmlspecialchars($docente['apellido_materno'] ?? ''); ?>">
                         </div>
                     </div>
                     
@@ -192,11 +193,11 @@
                         <div>
                             <label for="telefono" class="form-label">Teléfono</label>
                             <input type="tel" class="form-control" id="telefono" name="telefono" maxlength="20"
-                                   value="<?php echo htmlspecialchars($docente['telefono']); ?>">
+                                   value="<?php echo htmlspecialchars($docente['telefono'] ?? ''); ?>">
                         </div>
                     </div>
 
-                    <h5 class="section-title"><i class="fas fa-book"></i> Materias Asignadas</h5>
+                    <h5 class="section-title"><i class="fas fa-book"></i> Materias que puede impartir</h5>
                     
                     <div class="contador-materias">
                         <span id="contador-seleccionadas">0</span> materias seleccionadas
@@ -232,7 +233,8 @@
                                         <div class="materia-nombre"><?php echo htmlspecialchars($mat['nombre']); ?></div>
                                         <div class="materia-detalle">
                                             <i class="fas fa-graduation-cap"></i> <?php echo htmlspecialchars($mat['carrera_nombre']); ?> - 
-                                            <i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($mat['semestre_nombre']); ?>
+                                            <i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($mat['semestre_nombre']); ?> - 
+                                            <i class="fas fa-clock"></i> <?php echo $mat['horas_semana']; ?>hrs
                                         </div>
                                     </div>
                                 </label>
@@ -266,6 +268,7 @@
                                     <label for="usuario_login" class="form-label">Usuario</label>
                                     <input type="text" class="form-control" id="usuario_login" name="usuario_login" 
                                            value="<?php echo htmlspecialchars($usuario_asociado['usuario']); ?>">
+                                    <small class="text-muted">Cambiar el usuario de acceso</small>
                                 </div>
                                 <div>
                                     <label for="password" class="form-label">Nueva Contraseña</label>
@@ -277,7 +280,8 @@
 
                     <?php else: ?>
                         <div class="alert-warning">
-                            <i class="fas fa-user-slash"></i> Este docente no tiene cuenta de acceso al sistema.
+                            <i class="fas fa-user-slash"></i> 
+                            <span>Este docente <strong>no tiene cuenta</strong> de acceso al sistema.</span>
                         </div>
 
                         <div class="form-group">
@@ -288,11 +292,17 @@
                         </div>
 
                         <div id="campos_cuenta" style="display:none; background:#f8fafc; padding:20px; border-radius:10px; border:1px solid #e2e8f0;">
+                            <div class="alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span>Se creará una nueva cuenta de usuario para este docente</span>
+                            </div>
+                            
                             <div class="form-row">
                                 <div>
-                                    <label for="usuario_login" class="form-label">Usuario</label>
+                                    <label for="usuario_login" class="form-label">Usuario para login</label>
                                     <input type="text" class="form-control" id="usuario_login" name="usuario_login" 
                                            placeholder="Dejar vacío para usar No. Empleado">
+                                    <small class="text-muted">Si está vacío, se usará el Número de Empleado</small>
                                 </div>
                                 <div>
                                     <label for="password" class="form-label">Contraseña *</label>
@@ -334,11 +344,26 @@
                     
                     <hr>
                     
-                    <h6>Advertencia de edición</h6>
-                    <p>Si cambias el <strong>Número de Empleado</strong>, asegúrate de notificar al docente, ya que esto podría afectar sus trámites administrativos internos.</p>
+                    <h6><i class="fas fa-exclamation-triangle" style="color:#f59e0b;"></i> Advertencias</h6>
+                    <ul>
+                        <li>Si cambias el <strong>Número de Empleado</strong>, notifica al docente ya que puede afectar trámites administrativos.</li>
+                        <li>Al desmarcar una materia, se eliminará la asignación pero <strong>no afectará</strong> los horarios ya publicados del periodo actual.</li>
+                        <li>Los horarios futuros solo podrán usar las materias que estén marcadas aquí.</li>
+                    </ul>
+                </div>
+            </div>
 
-                    <h6>Materias</h6>
-                    <p>Desmarcar una materia eliminará la asignación actual. Asegúrate de que no haya calificaciones pendientes en esa materia para este periodo.</p>
+            <div class="info-card" style="margin-top:16px;">
+                <div class="info-card-header" style="background:#fef3c7; color:#854d0e; border-color:#fde047;">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Sugerencias</span>
+                </div>
+                <div class="info-card-body">
+                    <h6>Control de Materias</h6>
+                    <p>Solo asigna materias que el docente esté <strong>realmente capacitado</strong> para impartir. Esto evita errores en la asignación de horarios.</p>
+                    
+                    <h6>Cuenta de Acceso</h6>
+                    <p>Si el docente necesita consultar su horario o recibir notificaciones, asegúrate de que tenga una cuenta activa.</p>
                 </div>
             </div>
         </div>
@@ -354,9 +379,7 @@ function actualizarHorasMax() {
     const tipo = document.getElementById('tipo').value;
     const horasInput = document.getElementById('horas_max_semana');
     
-    // Solo actualizamos automáticamente si el usuario no ha puesto un valor personalizado
-    // Opcional: forzar siempre el cambio, depende de tu regla de negocio.
-    // Aquí dejaremos que cambie el valor sugerido si se cambia el tipo.
+    // Sugerencia automática según tipo de contratación
     if(tipo === 'tiempo_completo') horasInput.value = 40;
     else if(tipo === 'medio_tiempo') horasInput.value = 20;
     else if(tipo === 'asignatura') horasInput.value = 10;
@@ -371,13 +394,20 @@ function toggleCuentaFields(isEditMode) {
     if (check.checked) {
         container.style.display = 'block';
         if (!isEditMode) {
-            // Solo requerido si estamos CREANDO cuenta
+            // Solo requerido si estamos CREANDO cuenta nueva
             inputPass.setAttribute('required', 'required');
+        } else {
+            // Al modificar, la contraseña es opcional
+            inputPass.removeAttribute('required');
         }
     } else {
         container.style.display = 'none';
         inputPass.removeAttribute('required');
-        if(!isEditMode) inputPass.value = ''; 
+        if(!isEditMode) {
+            // Limpiar campos si cancelamos la creación
+            inputPass.value = '';
+            document.getElementById('usuario_login').value = ''; 
+        }
     }
 }
 
@@ -404,7 +434,7 @@ function filtrarMaterias() {
 }
 
 function confirmarEliminar(id) {
-    if(confirm('¿Está seguro de eliminar este docente? Esta acción no se puede deshacer.')) {
+    if(confirm('⚠️ ¿Está seguro de eliminar este docente?\n\nEsta acción no se puede deshacer.\n\nSe eliminarán:\n- El registro del docente\n- Su cuenta de usuario (si tiene)\n- Sus asignaciones de materias\n\n¿Desea continuar?')) {
         const form = document.getElementById('form-eliminar');
         form.querySelector('input[name="id"]').value = id;
         form.submit();
